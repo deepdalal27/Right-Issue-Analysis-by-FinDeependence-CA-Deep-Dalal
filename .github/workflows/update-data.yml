@@ -1,0 +1,55 @@
+name: Update rights data & deploy site
+
+on:
+  schedule:
+    # Market hours (09:00-17:30 IST, Mon-Fri): every 15 minutes
+    - cron: "*/15 3-12 * * 1-5"
+    # Off-hours: every 3 hours
+    - cron: "7 */3 * * *"
+  push:
+    branches: [main, "claude/**"]
+    paths: ["index.html", "logo.png", "scripts/**", ".github/workflows/update-data.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch previously published data (keeps subscription history)
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: prev
+
+      - name: Build data
+        env:
+          PREV: prev/data/rights.json
+          OUT: site/data/rights.json
+        run: python3 scripts/scrape.py
+
+      - name: Assemble site
+        run: |
+          cp index.html logo.png site/
+          touch site/.nojekyll
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: "github-actions[bot]"
+          user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          commit_message: "Data refresh"

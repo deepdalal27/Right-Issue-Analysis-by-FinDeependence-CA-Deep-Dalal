@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FinDeependence — Live Rights Issue Tracker</title>
+<meta name="description" content="Live tracker for open & upcoming rights issues in India: dates, entitlement ratio, issue price, date-wise subscription, trading volume averages and highs/lows. Created by CA Deep Dalal.">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#1fa463; --green-dark:#157a49; --teal:#35c4d7; --teal-soft:#e4f7fa;
+  --ink:#1f2430; --muted:#6b7280; --bg:#f4f8f6; --card:#ffffff; --line:#e5eae8;
+  --amber:#d97706; --red:#dc2626; --blue:#2563eb; --violet:#6d28d9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+a{color:var(--green-dark);text-decoration:none}
+header{background:var(--ink);color:#fff;padding:12px 20px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.hwrap{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.hwrap img{width:50px;height:50px;border-radius:50%;background:#fff}
+.brand h1{font-size:1.12rem;font-weight:800}
+.brand h1 span{color:var(--teal)}
+.brand p{font-size:.68rem;letter-spacing:2.5px;color:#cbd5d1;text-transform:uppercase;margin-top:2px}
+.creator{margin-left:auto;text-align:right}
+.creator .by{font-size:.66rem;color:#9aa5a0;text-transform:uppercase;letter-spacing:1.5px}
+.creator .nm{font-size:.9rem;font-weight:700;color:#fff}
+.creator .nm b{color:var(--teal)}
+.toolbar{max-width:1180px;margin:16px auto 0;padding:0 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tab{border:none;background:transparent;padding:8px 14px;border-radius:9px;font-family:inherit;font-size:.83rem;font-weight:600;color:var(--muted);cursor:pointer}
+.tab.active{background:var(--green);color:#fff}
+.tab .cnt{font-size:.68rem;opacity:.8;margin-left:3px}
+#search{flex:1;min-width:150px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;font-family:inherit;font-size:.85rem;background:#fff;outline:none}
+#search:focus{border-color:var(--teal)}
+#refreshBtn{border:1px solid #c9edf3;background:var(--teal-soft);color:#0e7490;padding:10px 14px;border-radius:12px;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer}
+#stamp{font-size:.7rem;color:var(--muted)}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+main{max-width:1180px;margin:14px auto 40px;padding:0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+@media(max-width:400px){.grid{grid-template-columns:1fr}}
+.note{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px;text-align:center;color:var(--muted);font-size:.9rem;grid-column:1/-1}
+.err{grid-column:1/-1;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:16px;font-size:.85rem;text-align:center}
+.loading{display:flex;justify-content:center;padding:60px;grid-column:1/-1}
+.spin{width:38px;height:38px;border:4px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Card */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:11px;box-shadow:0 1px 4px rgba(31,36,48,.05);min-width:0}
+.card-top{display:flex;align-items:flex-start;gap:10px}
+.clogo{width:40px;height:40px;border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--line);flex-shrink:0}
+.card h3{font-size:.98rem;font-weight:700;line-height:1.25}
+.card .sym{font-size:.68rem;color:var(--muted);margin-top:2px}
+.badges{margin-left:auto;display:flex;gap:5px;flex-shrink:0;flex-direction:column;align-items:flex-end}
+.pill{font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.p-open{background:#dcfce7;color:#15803d}.p-up{background:#e0f2fe;color:#0369a1}
+.p-close{background:#f3f4f6;color:#4b5563}.p-ren{background:#fef3c7;color:#92400e}
+.p-x{background:#eef2ff;color:#4338ca}
+.facts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.fact{background:var(--bg);border-radius:10px;padding:7px 9px;min-width:0}
+.fact .k{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.fact .v{font-size:.83rem;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+.fact .v small{font-weight:500;color:var(--muted);font-size:.68rem}
+.pos{color:var(--green-dark)}.neg{color:var(--red)}
+.dates{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);background:var(--teal-soft);border-radius:10px;padding:7px 11px;flex-wrap:wrap;gap:6px}
+.dates b{display:block;color:var(--ink);font-size:.76rem}
+.subs h4{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between}
+.subs h4 .tot{color:var(--ink);font-weight:800;font-size:.78rem;text-transform:none;letter-spacing:0}
+.bar{height:7px;background:#edf1ef;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--green))}
+.bar i.under{background:#fca5a5}
+.subs .meta{font-size:.64rem;color:var(--muted);margin-top:4px}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mini .fact{padding:6px 7px}
+.mini .fact .v{font-size:.74rem}
+/* Verdict strip */
+.verdict{display:flex;align-items:center;gap:10px;border-radius:12px;padding:9px 12px}
+.v-hi{background:linear-gradient(135deg,#ecfdf3,#e4f7fa);border:1px solid #bbf7d0}
+.v-mid{background:#fffbeb;border:1px solid #fde68a}
+.v-lo{background:#fef2f2;border:1px solid #fecaca}
+.v-na{background:var(--bg);border:1px solid var(--line)}
+.vscore{font-size:1.05rem;font-weight:800;min-width:62px;text-align:center;border-radius:10px;padding:4px 6px;background:#fff}
+.v-hi .vscore{color:var(--green-dark)}.v-mid .vscore{color:var(--amber)}.v-lo .vscore{color:var(--red)}.v-na .vscore{color:var(--muted)}
+.vtxt .vt{font-size:.78rem;font-weight:800}
+.vtxt .vs{font-size:.66rem;color:var(--muted)}
+.card-actions{display:flex;gap:8px;margin-top:auto}
+.btn{flex:1;border:none;border-radius:10px;padding:9px 8px;font-family:inherit;font-size:.76rem;font-weight:700;cursor:pointer;text-align:center}
+.btn-detail{background:var(--ink);color:#fff}
+.btn-alt{background:#ede9fe;color:var(--violet)}
+/* Detail overlay */
+.dov{position:fixed;inset:0;background:rgba(15,20,25,.6);display:none;z-index:100;overflow-y:auto;padding:18px 12px}
+.dov.show{display:block}
+.dpanel{background:var(--bg);border-radius:18px;max-width:920px;margin:0 auto;overflow:hidden}
+.dhead{background:var(--ink);color:#fff;padding:16px 20px;display:flex;gap:14px;align-items:center;position:sticky;top:0;z-index:5}
+.dhead img.cl{width:52px;height:52px;border-radius:10px;background:#fff;object-fit:contain;flex-shrink:0}
+.dhead h2{font-size:1.1rem}
+.dhead .sub{font-size:.72rem;color:#cbd5d1;margin-top:2px}
+.dclose{margin-left:auto;border:none;background:rgba(255,255,255,.12);color:#fff;width:34px;height:34px;border-radius:9px;font-size:1.05rem;cursor:pointer;flex-shrink:0}
+.dbody{padding:16px 20px 26px;display:flex;flex-direction:column;gap:14px}
+@media(max-width:640px){.dbody{padding:12px 12px 22px}.dhead{padding:12px 14px}}
+.sect{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.sect>h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sect>h3 .rt{font-size:.68rem;text-transform:none;letter-spacing:0;font-weight:600}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.kgrid .fact .v{font-size:.88rem}
+.tw{overflow-x:auto}
+table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
+table.ft th{background:var(--bg);text-align:left;padding:7px 9px;font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap}
+table.ft td{padding:7px 9px;border-top:1px solid var(--line);white-space:nowrap}
+table.ft td:not(:first-child),table.ft th:not(:first-child){text-align:right}
+table.ft tr.hl td{background:#eafaf1}
+.seg{display:inline-flex;gap:4px;background:var(--bg);border-radius:9px;padding:3px}
+.seg button{border:none;background:transparent;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:.7rem;font-weight:700;color:var(--muted);cursor:pointer}
+.seg button.active{background:var(--ink);color:#fff}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:Inter,sans-serif;font-size:10px;fill:var(--muted)}
+.ctip{font-size:.72rem;color:var(--muted);margin-top:6px;min-height:18px}
+.reasons{list-style:none;display:flex;flex-direction:column;gap:5px}
+.reasons li{font-size:.78rem;padding-left:20px;position:relative;line-height:1.45}
+.reasons li.g::before{content:"▲";color:var(--green-dark);position:absolute;left:0;font-size:.7rem}
+.reasons li.b::before{content:"▼";color:var(--red);position:absolute;left:0;font-size:.7rem}
+.reasons li.n::before{content:"•";color:var(--muted);position:absolute;left:0}
+.calcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.calcgrid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}.mini{grid-template-columns:1fr 1fr}.creator{display:none}.hwrap img{width:38px;height:38px}.brand p{display:none}header{padding:10px 16px}.toolbar,main{padding:0 16px}}
+.calc label{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:block;margin:9px 0 4px}
+.calc input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:.88rem;background:#fff}
+.cres{background:var(--teal-soft);border-radius:12px;padding:12px;margin-top:10px}
+.cres .pct{font-size:1.3rem;font-weight:800;color:#0e7490}
+.cres .expl{font-size:.76rem;margin-top:5px;line-height:1.6}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{font-size:.76rem;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+.small{font-size:.68rem;color:var(--muted);margin-top:8px;line-height:1.5}
+/* Calendar */
+.calwrap{grid-column:1/-1;display:flex;flex-direction:column;gap:10px}
+.cday{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start}
+.cday.today{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft)}
+.cday .dt{min-width:64px;text-align:center;background:var(--bg);border-radius:9px;padding:6px 4px}
+.cday .dt .dd{font-size:1.1rem;font-weight:800}
+.cday .dt .dm{font-size:.62rem;color:var(--muted);text-transform:uppercase}
+.cday .evl{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cday .ev{font-size:.76rem;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.tagx{font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:99px;text-transform:uppercase;white-space:nowrap}
+.tg-rec{background:#e0f2fe;color:#0369a1}.tg-open{background:#dcfce7;color:#15803d}.tg-close{background:#fee2e2;color:#b91c1c}
+.tg-ren{background:#fef3c7;color:#92400e}.tg-allot{background:#ede9fe;color:#6d28d9}.tg-buy{background:#f3f4f6;color:#374151}
+.cday .ev b{cursor:pointer}
+/* Wide table views */
+.widewrap{grid-column:1/-1;background:#fff;border:1px solid var(--line);border-radius:14px;overflow-x:auto}
+.widewrap table.ft td:first-child{white-space:normal;min-width:170px}
+.widewrap table.ft td b{cursor:pointer}
+footer{background:var(--ink);color:#aeb6b2;padding:24px 20px;font-size:.73rem;line-height:1.7}
+.fwrap{max-width:1180px;margin:0 auto;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+.fwrap img{width:42px;height:42px;border-radius:50%}
+footer b{color:#fff}
+.disc{flex:1;min-width:260px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <img src="logo.png" alt="FinDeependence logo">
+    <div class="brand">
+      <h1>Fin<span>Deependence</span> Rights Issue Tracker</h1>
+      <p>Freedom with Finance</p>
+    </div>
+    <div class="creator">
+      <div class="by">Created by</div>
+      <div class="nm"><b>CA</b> Deep Dalal</div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="open">Open<span class="cnt" id="c-open"></span></button>
+    <button class="tab" data-tab="upcoming">Upcoming<span class="cnt" id="c-upcoming"></span></button>
+    <button class="tab" data-tab="closed">Closed<span class="cnt" id="c-closed"></span></button>
+    <button class="tab" data-tab="subs">📊 Subscription</button>
+    <button class="tab" data-tab="vol">📈 Volume &amp; Highs/Lows</button>
+    <button class="tab" data-tab="cal">📅 Calendar</button>
+  </div>
+  <input id="search" type="search" placeholder="Search company, BSE code, NSE symbol…">
+  <button id="refreshBtn">↻ Refresh</button>
+  <span id="stamp"></span>
+</div>
+
+<main><div class="grid" id="grid"><div class="loading"><div class="spin"></div></div></div></main>
+
+<div class="dov" id="dov"><div class="dpanel" id="dpanel"></div></div>
+
+<footer>
+  <div class="fwrap">
+    <img src="logo.png" alt="">
+    <div class="disc">
+      <b>FinDeependence</b> · Freedom with Finance · Created by <b>CA Deep Dalal</b><br>
+      Rights issue dates, price, ratio, size and subscription are aggregated from Chittorgarh public reports and detail pages; share and Rights Entitlement prices &amp; volumes from Yahoo Finance daily candles (exchange data, may be delayed). Data refreshes automatically every 15 minutes during market hours. TERP, RE fair value, discount and verdict figures are <b>indicative estimates</b> — always verify with the Letter of Offer and exchange notices.<br>
+      <b>Disclaimer:</b> Education only. Not investment advice or a recommendation. Consult a SEBI-registered adviser before investing.
+    </div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const DATA_URL = 'data/rights.json';
+const AUTO_MS = 120000;
+let DATA = null, ISSUES = [];
+let view = {tab:'open', q:''};
+
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fd(iso, withYear=true){ if(!iso) return '—'; const [y,m,d]=iso.slice(0,10).split('-'); return `${+d} ${MON[+m-1]}${withYear?" '"+y.slice(2):''}`; }
+function fdt(iso){ if(!iso) return '—'; const t = iso.length>10 ? ' '+iso.slice(11,16) : ''; return fd(iso)+t; }
+function inr(v, dp=2){ if(v==null||isNaN(v)) return '—'; return '₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:dp,minimumFractionDigits:v<100&&dp?2:0}); }
+function nf(v){ if(v==null||isNaN(v)) return '—'; return Math.round(v).toLocaleString('en-IN'); }
+function compact(v){ if(v==null||isNaN(v)) return '—'; const a=Math.abs(v);
+  if(a>=1e7) return (v/1e7).toFixed(2)+' Cr'; if(a>=1e5) return (v/1e5).toFixed(2)+' L'; if(a>=1e3) return (v/1e3).toFixed(1)+'K'; return String(Math.round(v)); }
+function pct(v, dp=1){ if(v==null||isNaN(v)) return '—'; return (v>0?'+':'')+v.toFixed(dp)+'%'; }
+const todayISO = (()=>{ const d=new Date(Date.now()+ (330+new Date().getTimezoneOffset())*60000); return d.toISOString().slice(0,10); })();
+function daysTo(iso){ if(!iso) return null; return Math.round((Date.parse(iso)-Date.parse(todayISO))/86400000); }
+
+/* Rights math: ratio = rights shares offered for every `held` shares */
+function ratioOf(it){
+  const d = it.detail||{};
+  if(d.entRights && d.entHeld) return {r:d.entRights, h:d.entHeld};
+  const m = String(it.ratio||'').match(/(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/);
+  return m ? {r:+m[1], h:+m[2]} : null;
+}
+function cmpOf(it){ return (it.stock && it.stock.ltp) || it.cmp || null; }
+function math(it){
+  const P = it.price, C = cmpOf(it), R = ratioOf(it);
+  const o = {P, C, R};
+  if(P && C){
+    o.disc = (C-P)/C*100;           // discount of issue price to CMP
+    o.intrinsic = C-P;               // simple RE value
+  }
+  if(P && C && R){
+    o.terp = (R.h*C + R.r*P)/(R.h+R.r);   // theoretical ex-rights price
+    o.reFair = o.terp - P;                 // fair value of 1 RE
+    o.dilution = R.r/R.h*100;
+  }
+  const RE = (it.re && it.re.ltp) || it.reCmp;
+  if(RE!=null && P && C){
+    o.reMkt = RE;
+    o.effCost = RE + P;                    // buy RE + pay issue price
+    o.reGap = (C - o.effCost)/C*100;       // +ve => cheaper than buying in market
+  }
+  return o;
+}
+function verdict(it){
+  const m = math(it);
+  if(m.disc==null) return {cls:'v-na', score:'—', t:'Awaiting price data', s:'Issue price or CMP not available yet'};
+  if(m.disc < 0) return {cls:'v-lo', score:pct(m.disc,0), t:'Issue price ABOVE market price', s:'Cheaper to buy in the market; renounce/sell RE if it has value'};
+  if(m.disc < 8) return {cls:'v-lo', score:'−'+m.disc.toFixed(0)+'%', t:'Thin discount to CMP', s:'Small cushion — price can slip below issue price'};
+  if(m.disc < 20) return {cls:'v-mid', score:'−'+m.disc.toFixed(0)+'%', t:'Moderate discount', s:`TERP ${inr(m.terp)} · RE fair value ${inr(m.reFair)}`};
+  return {cls:'v-hi', score:'−'+m.disc.toFixed(0)+'%', t:'Deep discount to CMP', s:`TERP ${inr(m.terp)} · RE fair value ${inr(m.reFair)}`};
+}
+function statusPill(it){
+  if(it.status==='open'){
+    const ren = it.renunciation && todayISO<=it.renunciation;
+    return `<span class="pill p-open">Open</span>${ren?'<span class="pill p-ren">RE trading</span>':''}`;
+  }
+  if(it.status==='upcoming') return `<span class="pill p-up">Upcoming</span>`;
+  return `<span class="pill p-close">Closed</span>`;
+}
+function symLine(it){
+  const d = it.detail||{}; const a=[];
+  if(d.nse) a.push('NSE: '+d.nse); if(d.bse) a.push('BSE: '+d.bse);
+  if(d.reNse) a.push('RE NSE: '+d.reNse); if(d.reBse) a.push('RE BSE: '+d.reBse);
+  return a.join(' · ');
+}
+function latestSub(it){
+  const h = it.subsHistory||[];
+  const last = h.length ? h[h.length-1] : null;
+  const s = it.subscription;
+  if(s && (!last || (s.at||'')>=(last.at||''))) return s;
+  return last;
+}
+
+/* ================= load ================= */
+async function load(manual){
+  if(manual) $('#refreshBtn').textContent='↻ Loading…';
+  try{
+    const r = await fetch(DATA_URL+'?t='+Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    DATA = j; ISSUES = j.issues||[];
+    ['open','upcoming','closed'].forEach(k=>{ $('#c-'+k).textContent = ' '+ISSUES.filter(i=>i.status===k).length; });
+    stamp();
+    render();
+  }catch(e){
+    if(!DATA) $('#grid').innerHTML = `<div class="err">Could not load rights data (${esc(e.message)}). The data file is generated every 15 minutes by the GitHub Action — please retry shortly.</div>`;
+  }finally{ $('#refreshBtn').textContent='↻ Refresh'; }
+}
+function stamp(){
+  if(!DATA) return;
+  const g = new Date(DATA.generatedAt); const mins = Math.max(0,Math.round((Date.now()-g)/60000));
+  $('#stamp').innerHTML = `<span class="live-dot"></span>Updated ${g.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${mins<1?'just now':mins+' min ago'}`;
+}
+
+/* ================= render ================= */
+function matches(it){
+  if(!view.q) return true;
+  const q = view.q.toLowerCase(); const d=it.detail||{};
+  return [it.name,it.title,d.nse,d.bse,d.isin,d.reNse,d.reBse].some(x=>String(x||'').toLowerCase().includes(q));
+}
+function render(){
+  const g = $('#grid');
+  if(!DATA){ return; }
+  if(view.tab==='cal') return renderCal(g);
+  if(view.tab==='subs') return renderSubs(g);
+  if(view.tab==='vol') return renderVol(g);
+  let list = ISSUES.filter(i=>i.status===view.tab && matches(i));
+  if(view.tab==='closed') list = list.slice(0, view.q?200:60);
+  if(!list.length){ g.innerHTML = `<div class="note">No ${view.tab} rights issues${view.q?' matching "'+esc(view.q)+'"':''} right now.</div>`; return; }
+  g.innerHTML = list.map(card).join('');
+}
+function card(it){
+  const m = math(it), v = verdict(it), s = latestSub(it), st = it.stock;
+  const R = m.R;
+  const subsHtml = s && s.times!=null ? `
+    <div class="subs"><h4>Subscription <span class="tot">${s.times.toFixed(2)}×</span></h4>
+      <div class="bar"><i class="${s.times<1?'under':''}" style="width:${Math.min(100,s.times*100)}%"></i></div>
+      <div class="meta">as on ${fdt(s.at)}${s.bidQty?' · '+compact(s.bidQty)+' shares bid':''}</div></div>` :
+    (it.status!=='upcoming' ? '' : `<div class="subs"><h4>Subscription <span class="tot">opens ${fd(it.open)}</span></h4></div>`);
+  const volHtml = st ? `<div class="mini">
+      <div class="fact"><div class="k">Vol today</div><div class="v">${compact(st.volume.lastDay)}</div></div>
+      <div class="fact"><div class="k">Avg 1M/day</div><div class="v">${compact(st.volume.avg1M)}</div></div>
+      <div class="fact"><div class="k">52W H</div><div class="v">${inr(st.hl.w52&&st.hl.w52.high)}</div></div>
+      <div class="fact"><div class="k">52W L</div><div class="v">${inr(st.hl.w52&&st.hl.w52.low)}</div></div></div>` : '';
+  const dl = daysTo(it.close);
+  return `<div class="card">
+    <div class="card-top">
+      ${it.logo?`<img class="clogo" src="${esc(it.logo)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
+      <div style="min-width:0"><h3>${esc(it.name)}</h3><div class="sym">${esc(symLine(it))}</div></div>
+      <div class="badges">${statusPill(it)}${it.status==='open'&&dl!=null&&dl>=0?`<span class="pill p-x">${dl===0?'Closes today':dl+'d left'}</span>`:''}</div>
+    </div>
+    <div class="facts">
+      <div class="fact"><div class="k">Issue price</div><div class="v">${inr(it.price)}</div></div>
+      <div class="fact"><div class="k">Ratio</div><div class="v">${R?`${R.r}:${R.h}`:esc(it.ratio||'—')} <small>${R?'R:H':''}</small></div></div>
+      <div class="fact"><div class="k">Size</div><div class="v">${it.sizeCr!=null?'₹'+it.sizeCr+' Cr':'—'}</div></div>
+      <div class="fact"><div class="k">CMP</div><div class="v">${inr(m.C)} ${st&&st.chgPct!=null?`<small class="${st.chgPct>=0?'pos':'neg'}">${pct(st.chgPct,2)}</small>`:''}</div></div>
+      <div class="fact"><div class="k">RE price</div><div class="v">${inr(m.reMkt)}</div></div>
+      <div class="fact"><div class="k">RE fair val</div><div class="v">${inr(m.reFair)}</div></div>
+    </div>
+    <div class="dates">
+      <div>Record<b>${fd(it.record)}</b></div>
+      <div>Opens<b>${fd(it.open)}</b></div>
+      <div>RE last<b>${fd(it.renunciation)}</b></div>
+      <div>Closes<b>${fd(it.close)}</b></div>
+    </div>
+    ${subsHtml}
+    ${volHtml}
+    <div class="verdict ${v.cls}"><div class="vscore">${v.score}</div><div class="vtxt"><div class="vt">${v.t}</div><div class="vs">${v.s}</div></div></div>
+    <div class="card-actions">
+      <button class="btn btn-detail" data-open="${it.id}">Full analysis →</button>
+      <a class="btn btn-alt" href="${esc(it.cgUrl)}" target="_blank" rel="noopener">Chittorgarh ↗</a>
+    </div>
+  </div>`;
+}
+
+/* ---------- Subscription tab ---------- */
+function renderSubs(g){
+  const list = ISSUES.filter(i=>(i.status==='open' || (i.status==='closed' && daysTo(i.close)>=-30)) && matches(i) && (latestSub(i)));
+  if(!list.length){ g.innerHTML='<div class="note">No live subscription data right now.</div>'; return; }
+  list.sort((a,b)=>(a.status===b.status?0:a.status==='open'?-1:1) || ((latestSub(b).times||0)-(latestSub(a).times||0)));
+  g.innerHTML = `<div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>Status</th><th>Close</th><th>Issue shares</th><th>Bid qty</th><th>Subscribed</th><th>Day-wise progression</th><th>As on</th></tr></thead><tbody>
+  ${list.map(it=>{ const s=latestSub(it); const h=(it.subsHistory||[]).filter(x=>x.times!=null);
+    const prog = dailySubs(h).map(x=>`${fd(x.at,false)}: ${x.times.toFixed(2)}×`).slice(-5).join(' → ');
+    return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b></td><td>${it.status}</td><td>${fd(it.close)}</td><td>${nf((it.subscription&&it.subscription.shares)||(it.detail&&it.detail.issueShares))}</td><td>${nf(s.bidQty)}</td><td><b class="${s.times>=1?'pos':'neg'}">${s.times!=null?s.times.toFixed(2)+'×':'—'}</b></td><td style="font-size:.7rem">${prog||'—'}</td><td>${fdt(s.at)}</td></tr>`;}).join('')}
+  </tbody></table></div>`;
+}
+/* last snapshot per calendar day */
+function dailySubs(h){
+  const by={}; (h||[]).forEach(x=>{ if(x.at && x.times!=null) by[x.at.slice(0,10)]=x; });
+  return Object.keys(by).sort().map(k=>by[k]);
+}
+
+/* ---------- Volume & H/L tab ---------- */
+function renderVol(g){
+  const list = ISSUES.filter(i=>i.stock && i.status!=='closed' && matches(i)).concat(ISSUES.filter(i=>i.stock && i.status==='closed' && matches(i)).slice(0,25));
+  if(!list.length){ g.innerHTML='<div class="note">No price/volume data available yet.</div>'; return; }
+  g.innerHTML = `<div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>LTP</th><th>Vol (day)</th><th>Avg/day 1M</th><th>Avg/day 1Y</th><th>Avg / month</th><th>Avg / year</th><th>Day H / L</th><th>Month H / L</th><th>52W H / L</th><th>All-time H / L</th></tr></thead><tbody>
+  ${list.map(it=>{ const s=it.stock, v=s.volume, h=s.hl; const hl=x=>x?`${inr(x.high)} / ${inr(x.low)}`:'—';
+    return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${esc(s.symbol)} · ${it.status}</div></td><td>${inr(s.ltp)}</td><td>${compact(v.lastDay)}</td><td>${compact(v.avg1M)}</td><td>${compact(v.avg1Y)}</td><td>${compact(v.avgMonthly12M)}</td><td>${compact(v.avgYearly)}</td><td>${hl(h.day)}</td><td>${hl(h.month)}</td><td>${hl(h.w52)}</td><td>${hl(h.all)}</td></tr>`;}).join('')}
+  </tbody></table></div>`;
+}
+
+/* ---------- Calendar ---------- */
+function renderCal(g){
+  const ev = {};
+  const add = (d, tag, cls, it) => { if(!d) return; (ev[d] = ev[d]||[]).push({tag,cls,it}); };
+  const from = new Date(Date.parse(todayISO)-7*86400000).toISOString().slice(0,10);
+  ISSUES.filter(matches).forEach(it=>{
+    const dd=(it.detail&&it.detail.dates)||{};
+    add(dd.lastBuy,'Last day to buy','tg-buy',it);
+    add(it.record,'Record date','tg-rec',it);
+    add(it.open,'Opens','tg-open',it);
+    add(it.renunciation,'RE renunciation ends','tg-ren',it);
+    add(it.close,'Closes','tg-close',it);
+    add(dd.allotment,'Allotment','tg-allot',it);
+    add(dd.listing,'Listing','tg-allot',it);
+  });
+  const days = Object.keys(ev).filter(d=>d>=from).sort();
+  if(!days.length){ g.innerHTML='<div class="note">No upcoming rights issue events.</div>'; return; }
+  g.innerHTML = `<div class="calwrap">${days.map(d=>{ const [y,m,dd]=d.split('-');
+    const wd = new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'});
+    return `<div class="cday ${d===todayISO?'today':''}"><div class="dt"><div class="dd">${+dd}</div><div class="dm">${MON[+m-1]} · ${wd}</div></div>
+      <div class="evl">${ev[d].map(e=>`<div class="ev"><span class="tagx ${e.cls}">${e.tag}</span><b data-open="${e.it.id}">${esc(e.it.name)}</b><small style="color:var(--muted)">${inr(e.it.price)} · ${esc(e.it.ratio||'')}</small></div>`).join('')}</div></div>`;}).join('')}</div>`;
+}
+
+/* ================= detail overlay ================= */
+let chartRange = 260;
+function openDetail(id){
+  const it = ISSUES.find(i=>String(i.id)===String(id)); if(!it) return;
+  const d = it.detail||{}, m = math(it), v = verdict(it), st = it.stock, dd = d.dates||{};
+  const R = m.R;
+  const kv = (k,val)=>`<div class="fact"><div class="k">${k}</div><div class="v">${val}</div></div>`;
+  const reasons = [];
+  if(m.disc!=null) reasons.push([m.disc>=15?'g':m.disc>=0?'n':'b', `Issue price ${inr(m.P)} is ${Math.abs(m.disc).toFixed(1)}% ${m.disc>=0?'below':'above'} CMP ${inr(m.C)}.`]);
+  if(m.terp) reasons.push(['n', `Theoretical ex-rights price (TERP) ≈ ${inr(m.terp)}; fair value of one Rights Entitlement ≈ ${inr(m.reFair)}.`]);
+  if(m.dilution) reasons.push([m.dilution>50?'b':'n', `Equity expands by ${m.dilution.toFixed(1)}% if fully subscribed (${R.r} new for every ${R.h} held).`]);
+  if(m.reMkt!=null) reasons.push([m.reGap>0?'g':'b', `RE trades at ${inr(m.reMkt)} → buying RE + paying issue price costs ${inr(m.effCost)}, ${Math.abs(m.reGap).toFixed(1)}% ${m.reGap>0?'cheaper':'costlier'} than buying shares at CMP.`]);
+  const s = latestSub(it); if(s&&s.times!=null) reasons.push([s.times>=1?'g':'b', `Subscribed ${s.times.toFixed(2)}× as on ${fdt(s.at)}.`]);
+  if(st&&st.hl.w52&&m.P) reasons.push(['n', `52-week range ${inr(st.hl.w52.low)} – ${inr(st.hl.w52.high)}; issue price is ${((m.P-st.hl.w52.low)/st.hl.w52.low*100).toFixed(0)}% ${m.P>=st.hl.w52.low?'above':'below'} the 52W low.`]);
+
+  const subsRows = dailySubs(it.subsHistory);
+  const allSubs = (it.subsHistory||[]).filter(x=>x.times!=null);
+  const tt = [
+    ['Last date to buy shares (cum-rights)', dd.lastBuy],
+    ['Record date', it.record||dd.record],
+    ['Credit of Rights Entitlements', dd.reCredit],
+    ['Issue opens', it.open],
+    ['Last date for renunciation (RE trading)', it.renunciation],
+    ['Issue closes', it.close],
+    ['Allotment (on or about)', dd.allotment],
+    ['Credit of shares', dd.credit],
+    ['Listing', dd.listing],
+  ];
+  const hlRow = (lbl,x)=> x?`<tr><td>${lbl}</td><td>${inr(x.high)}</td><td>${fd(x.highOn||x.on)}</td><td>${inr(x.low)}</td><td>${fd(x.lowOn||x.on)}</td></tr>`:'';
+  $('#dpanel').innerHTML = `
+    <div class="dhead">${it.logo?`<img class="cl" src="${esc(it.logo)}" alt="" onerror="this.style.display='none'">`:''}
+      <div style="min-width:0"><h2>${esc(it.name)}</h2><div class="sub">${esc(it.title)} · ${esc(symLine(it))}${d.isin?' · ISIN '+esc(d.isin):''}</div></div>
+      <button class="dclose" id="dclose" aria-label="Close">✕</button></div>
+    <div class="dbody">
+      <div class="verdict ${v.cls}"><div class="vscore">${v.score}</div><div class="vtxt"><div class="vt">${v.t}</div><div class="vs">${v.s}</div></div></div>
+
+      <div class="sect"><h3>Rights issue details <span class="rt">${statusPill(it)}</span></h3>
+        <div class="kgrid">
+          ${kv('Issue price', inr(it.price))}
+          ${kv('Face value', esc(d.faceValue||'—'))}
+          ${kv('Rights ratio (rights : held)', R?`${R.r} : ${R.h}`:esc(it.ratio||'—'))}
+          ${kv('Issue size', it.sizeCr!=null?'₹'+it.sizeCr+' Cr':esc(d.issueAmtTxt||'—'))}
+          ${kv('Issue size (shares)', nf(d.issueShares))}
+          ${kv('Listing at', esc(d.listingAt||'—'))}
+          ${kv('Terms of payment', esc(d.terms||'—'))}
+          ${kv('CMP (share)', inr(m.C))}
+          ${kv('RE price (market)', inr(m.reMkt))}
+          ${kv('Discount to CMP', m.disc!=null?`<span class="${m.disc>=0?'pos':'neg'}">${m.disc.toFixed(1)}%</span>`:'—')}
+          ${kv('TERP', inr(m.terp))}
+          ${kv('RE fair value', inr(m.reFair))}
+          ${kv('Registrar', esc(d.registrar||'—'))}
+          ${kv('Lead manager', esc(d.leadManagers||'—'))}
+        </div>
+        ${d.entitlement?`<div class="small">Entitlement: ${esc(d.entitlement)}</div>`:''}
+      </div>
+
+      <div class="sect"><h3>Analysis</h3><ul class="reasons">${reasons.map(r=>`<li class="${r[0]}">${r[1]}</li>`).join('')||'<li class="n">Waiting for price data.</li>'}</ul></div>
+
+      <div class="sect"><h3>Timetable</h3><div class="tw"><table class="ft"><thead><tr><th>Event</th><th>Date</th><th>Days</th></tr></thead><tbody>
+        ${tt.map(([k,x])=>{ const n=daysTo(x); return `<tr class="${x===todayISO?'hl':''}"><td>${k}</td><td>${x?fd(x):'—'}</td><td>${n==null?'':n===0?'Today':n>0?'in '+n+'d':Math.abs(n)+'d ago'}</td></tr>`;}).join('')}
+      </tbody></table></div></div>
+
+      <div class="sect calc"><h3>Entitlement calculator</h3>
+        <div class="calcgrid">
+          <div><label>Shares held on record date</label><input id="cHeld" type="number" min="0" value="100"></div>
+          <div><label>Additional shares to apply</label><input id="cAdd" type="number" min="0" value="0"></div>
+        </div>
+        <div class="cres" id="cRes"></div>
+      </div>
+
+      <div class="sect"><h3>Subscription status — date wise <span class="rt">${s&&s.times!=null?s.times.toFixed(2)+'× latest':''}</span></h3>
+        ${subsRows.length?`${subsChart(subsRows)}<div class="tw"><table class="ft"><thead><tr><th>Date</th><th>Bid quantity</th><th>Subscribed</th><th>Change</th></tr></thead><tbody>
+        ${subsRows.map((x,i)=>{ const p=i?subsRows[i-1].times:0; return `<tr><td>${fdt(x.at)}</td><td>${nf(x.bidQty)}</td><td><b>${x.times.toFixed(2)}×</b></td><td class="${x.times-p>=0?'pos':'neg'}">${i?'+'+(x.times-p).toFixed(2)+'×':''}</td></tr>`;}).join('')}
+        </tbody></table></div>${allSubs.length>subsRows.length?`<div class="small">${allSubs.length} intraday snapshots captured; table shows the last snapshot of each day.</div>`:''}`
+        :`<div class="small">${it.status==='upcoming'?'Subscription data appears once the issue opens on '+fd(it.open)+'.':'No subscription data published.'}</div>`}
+      </div>
+
+      ${st?`
+      <div class="sect"><h3>Price &amp; volume <span class="rt">${esc(st.symbol)} · ${esc(st.exchange||'')} · as of ${fd(st.asOf)}</span></h3>
+        <div class="seg" id="rngSeg">${[[22,'1M'],[66,'3M'],[130,'6M'],[260,'1Y']].map(([n,l])=>`<button data-n="${n}" class="${n===chartRange?'active':''}">${l}</button>`).join('')}</div>
+        <div id="pchart"></div><div class="ctip" id="ctip">Hover/tap the chart for daily values. Dashed line = issue price.</div>
+      </div>
+
+      <div class="sect"><h3>Volume — day / month / year averages</h3>
+        <div class="kgrid">
+          ${kv('Last day volume', nf(st.volume.lastDay))}
+          ${kv('Avg daily · 5D', nf(st.volume.avg5D))}
+          ${kv('Avg daily · 1M', nf(st.volume.avg1M))}
+          ${kv('Avg daily · 3M', nf(st.volume.avg3M))}
+          ${kv('Avg daily · 1Y', nf(st.volume.avg1Y))}
+          ${kv('Avg daily · all-time', nf(st.volume.avgAll))}
+          ${kv('Avg monthly volume (12M)', nf(st.volume.avgMonthly12M))}
+          ${kv('Avg yearly volume', nf(st.volume.avgYearly))}
+          ${kv('This month so far', nf(st.volume.thisMonth))}
+          ${kv('This year so far', nf(st.volume.thisYear))}
+          ${kv('Highest day volume', nf(st.volume.maxDay)+`<small> ${fd(st.volume.maxDayOn)}</small>`)}
+          ${kv('Last day vs 1M avg', st.volume.avg1M?(st.volume.lastDay/st.volume.avg1M).toFixed(2)+'×':'—')}
+        </div>
+      </div>
+
+      <div class="sect"><h3>Highs &amp; lows</h3><div class="tw"><table class="ft"><thead><tr><th>Period</th><th>High</th><th>On</th><th>Low</th><th>On</th></tr></thead><tbody>
+        ${hlRow('Day ('+fd(st.hl.day.on)+')', st.hl.day)}${hlRow('1 Week', st.hl.week)}${hlRow('1 Month (30 days)', st.hl.month)}
+        ${hlRow('This calendar month', st.hl.calMonth)}${hlRow('3 Months', st.hl.m3)}${hlRow('52 Weeks', st.hl.w52)}
+        ${hlRow('This calendar year', st.hl.calYear)}${hlRow('All time (since '+fd(st.firstTrade)+')', st.hl.all)}
+      </tbody></table></div></div>
+
+      <div class="sect"><h3>Monthly — high / low / volume <span class="rt">last ${Math.min(24,st.monthly.length)} months</span></h3><div class="tw"><table class="ft"><thead><tr><th>Month</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Total vol</th><th>Avg/day</th><th>Days</th></tr></thead><tbody>
+        ${st.monthly.slice().reverse().map(x=>{const [y,mm]=x.m.split('-'); return `<tr><td>${MON[+mm-1]} ${y}</td><td>${inr(x.o)}</td><td>${inr(x.h)}</td><td>${inr(x.l)}</td><td>${inr(x.c)}</td><td>${compact(x.v)}</td><td>${compact(x.avgV)}</td><td>${x.n}</td></tr>`;}).join('')}
+      </tbody></table></div></div>
+
+      <div class="sect"><h3>Yearly — high / low / volume</h3><div class="tw"><table class="ft"><thead><tr><th>Year</th><th>High</th><th>Low</th><th>Close</th><th>Total vol</th><th>Avg/day</th><th>Avg/month</th></tr></thead><tbody>
+        ${st.yearly.slice().reverse().map(x=>`<tr><td>${x.y}</td><td>${inr(x.h)}</td><td>${inr(x.l)}</td><td>${inr(x.c)}</td><td>${compact(x.v)}</td><td>${compact(x.avgV)}</td><td>${compact(x.v/Math.max(1,Math.round(x.n/21)))}</td></tr>`).join('')}
+      </tbody></table></div></div>`
+      :`<div class="sect"><h3>Price &amp; volume</h3><div class="small">Price history not available for this company yet (needs an NSE symbol or BSE scrip code).</div></div>`}
+
+      ${it.re&&it.re.daily&&it.re.daily.length?`
+      <div class="sect"><h3>Rights Entitlement (RE) trading <span class="rt">${esc(it.re.symbol)}</span></h3>
+        <div class="kgrid">${kv('RE LTP', inr(it.re.ltp))}${kv('RE high', inr(it.re.hl&&it.re.hl.high))}${kv('RE low', inr(it.re.hl&&it.re.hl.low))}${kv('Total RE volume', nf(it.re.totalVol))}${kv('Avg RE vol/day', nf(it.re.avgVol))}</div>
+        <div class="tw" style="margin-top:10px"><table class="ft"><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody>
+        ${it.re.daily.slice().reverse().map(c=>`<tr><td>${fd(c[0])}</td><td>${inr(c[1])}</td><td>${inr(c[2])}</td><td>${inr(c[3])}</td><td>${inr(c[4])}</td><td>${nf(c[5])}</td></tr>`).join('')}
+        </tbody></table></div></div>`:''}
+
+      ${d.objects&&d.objects.length?`<div class="sect"><h3>Objects of the issue</h3><div class="tw"><table class="ft"><thead><tr><th>Object</th><th>₹ Cr</th></tr></thead><tbody>${d.objects.map(o=>`<tr><td style="white-space:normal">${esc(o.obj)}</td><td>${o.amt??'—'}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+
+      <div class="sect"><h3>Links</h3><div class="links">
+        <a href="${esc(it.cgUrl)}" target="_blank" rel="noopener">Chittorgarh detail ↗</a>
+        ${d.letterOfOffer?`<a href="${esc(d.letterOfOffer)}" target="_blank" rel="noopener">Letter of Offer ↗</a>`:''}
+        ${d.registrarSite?`<a href="${esc(d.registrarSite)}" target="_blank" rel="noopener">Registrar ↗</a>`:''}
+        ${d.allotmentUrl?`<a href="${esc(d.allotmentUrl)}" target="_blank" rel="noopener">Allotment status ↗</a>`:''}
+        ${d.bse?`<a href="https://www.bseindia.com/stock-share-price/x/x/${esc(d.bse)}/" target="_blank" rel="noopener">BSE quote ↗</a>`:''}
+        ${d.nse?`<a href="https://www.nseindia.com/get-quotes/equity?symbol=${encodeURIComponent(d.nse)}" target="_blank" rel="noopener">NSE quote ↗</a>`:''}
+        ${d.website?`<a href="${esc(d.website)}" target="_blank" rel="noopener">Company site ↗</a>`:''}
+      </div></div>
+    </div>`;
+  $('#dov').classList.add('show'); document.body.style.overflow='hidden';
+  $('#dclose').onclick = closeDetail;
+  const calc = ()=>{
+    const held = +$('#cHeld').value||0, add = +$('#cAdd').value||0;
+    if(!R || !it.price){ $('#cRes').innerHTML='<div class="expl">Ratio or price not announced yet.</div>'; return; }
+    const ent = Math.floor(held*R.r/R.h), tot = ent+add, amt = tot*it.price;
+    const mkt = m.C ? tot*m.C : null;
+    $('#cRes').innerHTML = `<div class="pct">${nf(ent)} rights shares</div>
+      <div class="expl">Entitled: <b>${nf(ent)}</b> (= ${nf(held)} × ${R.r}/${R.h}, rounded down)${add?` + additional <b>${nf(add)}</b>`:''}<br>
+      Amount payable: <b>${inr(amt,0)}</b>${it.detail&&it.detail.terms&&!/full/i.test(it.detail.terms)?' (check part-payment terms)':''}<br>
+      ${mkt?`Market value of ${nf(tot)} shares at CMP: <b>${inr(mkt,0)}</b> → notional gain <b class="${mkt-amt>=0?'pos':'neg'}">${inr(mkt-amt,0)}</b><br>`:''}
+      ${m.reFair!=null&&ent?`If you renounce instead: ${nf(ent)} REs × fair value ${inr(m.reFair)} ≈ <b>${inr(ent*m.reFair,0)}</b>${m.reMkt!=null?` (at market RE price ≈ ${inr(ent*m.reMkt,0)})`:''}`:''}</div>`;
+  };
+  $('#cHeld').oninput = calc; $('#cAdd').oninput = calc; calc();
+  if(st){ drawChart(it); $('#rngSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; chartRange=+b.dataset.n; $('#rngSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); drawChart(it); }; }
+}
+function closeDetail(){ $('#dov').classList.remove('show'); document.body.style.overflow=''; }
+
+function subsChart(rows){
+  const W=600,H=120,pad=26, n=rows.length, max=Math.max(1,...rows.map(r=>r.times));
+  const bw=Math.min(46,(W-pad*2)/n-6);
+  const bars = rows.map((r,i)=>{ const x=pad+(i+.5)*(W-pad*2)/n, h=(r.times/max)*(H-40);
+    return `<rect x="${x-bw/2}" y="${H-20-h}" width="${bw}" height="${h}" rx="4" fill="${r.times>=1?'#1fa463':'#fca5a5'}"/><text x="${x}" y="${H-24-h}" text-anchor="middle" style="fill:#1f2430;font-weight:700">${r.times.toFixed(2)}×</text><text x="${x}" y="${H-6}" text-anchor="middle">${fd(r.at,false)}</text>`; }).join('');
+  const y1 = H-20-(1/max)*(H-40);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Subscription by date">${max>=1?`<line x1="${pad}" x2="${W-pad}" y1="${y1}" y2="${y1}" stroke="#d97706" stroke-dasharray="4 4"/><text x="${W-pad}" y="${y1-3}" text-anchor="end">1×</text>`:''}${bars}</svg>`;
+}
+
+function drawChart(it){
+  const all = it.stock.daily||[]; const cs = all.slice(-chartRange); if(cs.length<2){ $('#pchart').innerHTML=''; return; }
+  const W=720,H=260,L=48,Rr=10,T=10,PH=170,VB=50;
+  const prices = cs.flatMap(c=>[c[2],c[3]]).concat(it.price?[it.price]:[]);
+  const lo=Math.min(...prices), hi=Math.max(...prices), rng=(hi-lo)||1;
+  const vmax=Math.max(...cs.map(c=>c[5]))||1;
+  const X=i=>L+i*(W-L-Rr)/(cs.length-1), Y=p=>T+(hi-p)/rng*PH;
+  const line = cs.map((c,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(c[4]).toFixed(1)}`).join('');
+  const area = line+`L${X(cs.length-1)},${T+PH}L${X(0)},${T+PH}Z`;
+  const bw=Math.max(1,(W-L-Rr)/cs.length-1);
+  const vols = cs.map((c,i)=>{ const h=c[5]/vmax*VB; const up=i?c[4]>=cs[i-1][4]:true; return `<rect x="${X(i)-bw/2}" y="${H-h-14}" width="${bw}" height="${h}" fill="${up?'#86efac':'#fca5a5'}"/>`; }).join('');
+  const ticks=[hi,lo+rng/2,lo].map(p=>`<text x="${L-6}" y="${Y(p)+3}" text-anchor="end">${p>=1000?Math.round(p):p.toFixed(p<10?2:1)}</text><line x1="${L}" x2="${W-Rr}" y1="${Y(p)}" y2="${Y(p)}" stroke="#e5eae8"/>`).join('');
+  const ip = it.price && it.price>=lo && it.price<=hi ? `<line x1="${L}" x2="${W-Rr}" y1="${Y(it.price)}" y2="${Y(it.price)}" stroke="#6d28d9" stroke-dasharray="5 4"/><text x="${W-Rr}" y="${Y(it.price)-4}" text-anchor="end" style="fill:#6d28d9;font-weight:700">Issue ${inr(it.price)}</text>`:'';
+  const xl=[0,Math.floor(cs.length/2),cs.length-1].map(i=>`<text x="${X(i)}" y="${H-2}" text-anchor="${i===0?'start':i===cs.length-1?'end':'middle'}">${fd(cs[i][0])}</text>`).join('');
+  $('#pchart').innerHTML = `<svg class="chart" id="psvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Price and volume chart">
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#35c4d7" stop-opacity=".28"/><stop offset="1" stop-color="#35c4d7" stop-opacity="0"/></linearGradient></defs>
+    ${ticks}<path d="${area}" fill="url(#ga)"/><path d="${line}" fill="none" stroke="#1fa463" stroke-width="2"/>${ip}${vols}${xl}
+    <line id="cx" y1="${T}" y2="${H-14}" stroke="#1f2430" stroke-opacity=".35" style="display:none"/></svg>`;
+  const svg=$('#psvg');
+  const move = e=>{ const r=svg.getBoundingClientRect(); const px=((e.touches?e.touches[0].clientX:e.clientX)-r.left)/r.width*W;
+    const i=Math.max(0,Math.min(cs.length-1,Math.round((px-L)/((W-L-Rr)/(cs.length-1))))); const c=cs[i];
+    const cx=$('#cx'); cx.style.display=''; cx.setAttribute('x1',X(i)); cx.setAttribute('x2',X(i));
+    $('#ctip').innerHTML=`<b>${fd(c[0])}</b> · O ${inr(c[1])} · H ${inr(c[2])} · L ${inr(c[3])} · C <b>${inr(c[4])}</b> · Vol ${nf(c[5])}`; };
+  svg.addEventListener('mousemove',move); svg.addEventListener('touchmove',move,{passive:true});
+}
+
+/* ================= events ================= */
+$('#tabs').addEventListener('click', e=>{ const b=e.target.closest('.tab'); if(!b) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===b)); view.tab=b.dataset.tab; render(); });
+$('#search').addEventListener('input', e=>{ view.q=e.target.value.trim(); render(); });
+$('#refreshBtn').addEventListener('click', ()=>load(true));
+document.addEventListener('click', e=>{ const o=e.target.closest('[data-open]'); if(o){ openDetail(o.dataset.open); } });
+$('#dov').addEventListener('click', e=>{ if(e.target.id==='dov') closeDetail(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDetail(); });
+setInterval(()=>{ if(!document.hidden) load(); }, AUTO_MS);
+setInterval(stamp, 30000);
+load();
+</script>
+</body>
+</html>
