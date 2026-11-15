@@ -148,6 +148,24 @@ table.ft tr.hl td{background:#eafaf1}
 .widewrap{grid-column:1/-1;background:#fff;border:1px solid var(--line);border-radius:14px;overflow-x:auto}
 .widewrap table.ft td:first-child{white-space:normal;min-width:170px}
 .widewrap table.ft td b{cursor:pointer}
+.stars{letter-spacing:1px;font-size:.8rem;white-space:nowrap}.stars i{font-style:normal}.stars .f{color:#f59e0b}.stars .e{color:#d1d5db}
+.stars .h{background:linear-gradient(90deg,#f59e0b 50%,#d1d5db 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.vscore small{font-size:.6rem;color:var(--muted);font-weight:600}
+.dec{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.dec{grid-template-columns:1fr}}
+.dbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.dbox .who{font-size:.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+.dbox .act{font-size:1rem;font-weight:800;margin:4px 0}
+.dbox .why{font-size:.76rem;line-height:1.55}
+.dbox.pos{background:#ecfdf3;border-color:#bbf7d0}.dbox.neg{background:#fef2f2;border-color:#fecaca}
+.sbar{height:6px;background:#edf1ef;border-radius:99px;overflow:hidden;min-width:60px}
+.sbar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--green))}
+table.ft td.wrap{white-space:normal;text-align:left!important;font-size:.72rem;color:#374151;min-width:220px}
+details.learn{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+details.learn summary{cursor:pointer;font-weight:800;font-size:.85rem}
+details.learn p,details.learn li{font-size:.78rem;line-height:1.65;color:#374151;margin-top:6px}
+details.learn ul{padding-left:18px}
+.rhead{grid-column:1/-1;background:linear-gradient(135deg,#ecfdf3,#e4f7fa);border:1px solid #bbf7d0;border-radius:14px;padding:12px 16px;font-size:.78rem;line-height:1.6}
 footer{background:var(--ink);color:#aeb6b2;padding:24px 20px;font-size:.73rem;line-height:1.7}
 .fwrap{max-width:1180px;margin:0 auto;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
 .fwrap img{width:42px;height:42px;border-radius:50%}
@@ -175,6 +193,7 @@ footer b{color:#fff}
     <button class="tab active" data-tab="open">Open<span class="cnt" id="c-open"></span></button>
     <button class="tab" data-tab="upcoming">Upcoming<span class="cnt" id="c-upcoming"></span></button>
     <button class="tab" data-tab="closed">Closed<span class="cnt" id="c-closed"></span></button>
+    <button class="tab" data-tab="rate">⭐ RE Ratings</button>
     <button class="tab" data-tab="subs">📊 Subscription</button>
     <button class="tab" data-tab="vol">📈 Volume &amp; Highs/Lows</button>
     <button class="tab" data-tab="cal">📅 Calendar</button>
@@ -231,15 +250,18 @@ function cmpOf(it){ return (it.stock && it.stock.ltp) || it.cmp || null; }
 function math(it){
   const P = it.price, C = cmpOf(it), R = ratioOf(it);
   const o = {P, C, R};
+  // Shares go ex-rights on the record date (T+1 settlement): from then on CMP already
+  // reflects the dilution, so one RE is worth CMP − issue price. Before that, use TERP.
+  o.exRights = !!(it.record && todayISO >= it.record);
   if(P && C){
     o.disc = (C-P)/C*100;           // discount of issue price to CMP
-    o.intrinsic = C-P;               // simple RE value
+    o.intrinsic = C-P;
   }
   if(P && C && R){
-    o.terp = (R.h*C + R.r*P)/(R.h+R.r);   // theoretical ex-rights price
-    o.reFair = o.terp - P;                 // fair value of 1 RE
     o.dilution = R.r/R.h*100;
-  }
+    if(o.exRights){ o.terp = C; o.reFair = Math.max(0, C - P); }
+    else { o.terp = (R.h*C + R.r*P)/(R.h+R.r); o.reFair = Math.max(0, o.terp - P); }
+  } else if(P && C){ o.reFair = Math.max(0, C - P); }
   const RE = (it.re && it.re.ltp) || it.reCmp;
   if(RE!=null && P && C){
     o.reMkt = RE;
@@ -248,13 +270,120 @@ function math(it){
   }
   return o;
 }
+
+/* ================= RE rating engine =================
+   Score 0-100 from six measurable factors. The heaviest one asks: how many "normal
+   moves" of this stock would it take to wipe out the discount before the new shares list?
+   It's all rules-based on public data: an educational screen, not advice. */
+function tradingDaysBetween(a, b){ if(!a||!b) return null; const d=(Date.parse(b)-Date.parse(a))/86400000; return Math.max(1, Math.round(d*5/7)); }
+function volStats(st){
+  const cs = (st&&st.daily)||[]; const n = Math.min(66, cs.length-1);
+  if(n < 10) return null;
+  const rets = []; for(let i=cs.length-n;i<cs.length;i++){ const a=cs[i-1][4], b=cs[i][4]; if(a>0&&b>0) rets.push(Math.log(b/a)); }
+  const mean = rets.reduce((s,x)=>s+x,0)/rets.length;
+  const sd = Math.sqrt(rets.reduce((s,x)=>s+(x-mean)**2,0)/(rets.length-1));
+  const closes = cs.map(c=>c[4]);
+  const sma = k => closes.length>=k ? closes.slice(-k).reduce((s,x)=>s+x,0)/k : null;
+  const back = k => closes.length>k ? closes[closes.length-1-k] : null;
+  const valTr = cs.slice(-22).map(c=>c[4]*c[5]); // ₹ traded per day
+  return { dailyVol: sd, annVol: sd*Math.sqrt(250), sma50: sma(50), sma200: sma(200),
+    ret3M: back(63)? (closes[closes.length-1]/back(63)-1)*100 : null,
+    ret1M: back(21)? (closes[closes.length-1]/back(21)-1)*100 : null,
+    avgValue: valTr.reduce((s,x)=>s+x,0)/Math.max(1,valTr.length) };
+}
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+function rate(it){
+  if(it._rate) return it._rate;
+  const m = math(it), st = it.stock, vs = volStats(st), s = latestSub(it);
+  const r = {m, vs, factors:[], score:null};
+  if(m.disc==null){ r.label='Not rated'; r.cls='v-na'; r.short='Awaiting issue price / market price'; return it._rate=r; }
+  // days at risk: from today (or issue open) until the new shares can be sold
+  const from = todayISO > (it.open||todayISO) ? todayISO : it.open;
+  const until = (it.detail&&it.detail.dates&&it.detail.dates.listing) || (it.close ? new Date(Date.parse(it.close)+14*86400000).toISOString().slice(0,10) : null);
+  r.daysAtRisk = tradingDaysBetween(from, until) || 15;
+  const F = (key, name, pts, max, value, why) => r.factors.push({key, name, pts:Math.round(pts*10)/10, max, value, why});
+
+  // 1. Safety cushion in volatility units (35)
+  if(vs && vs.dailyVol>0){
+    const move = vs.dailyVol*Math.sqrt(r.daysAtRisk)*100;     // 1-sigma % move over the risk window
+    r.expMove = move;
+    r.cushionSigma = m.disc/move;
+    // probability the price is below the issue price at listing (normal approx, log space)
+    const z = m.disc>-99 ? Math.log(1/(1-m.disc/100))/(vs.dailyVol*Math.sqrt(r.daysAtRisk)) : -9;
+    r.probLoss = 100*(1-ncdf(z));
+    F('cushion','Safety cushion vs volatility', clamp(r.cushionSigma/2,0,1)*35, 35,
+      `${r.cushionSigma.toFixed(2)}σ`, `Discount ${m.disc.toFixed(1)}% vs a typical ${move.toFixed(1)}% move over ~${r.daysAtRisk} trading days until the new shares list. ≈${probTxt(r.probLoss)} chance the share trades below the issue price by then.`);
+  } else {
+    F('cushion','Safety cushion vs volatility', clamp(m.disc/30,0,1)*20, 35, '—', 'Not enough price history for volatility; scored on discount only (max 20).');
+  }
+  // 2. Discount size (20)
+  F('disc','Discount to market price', clamp(m.disc/30,0,1)*20, 20, m.disc.toFixed(1)+'%',
+    m.disc<0 ? 'Issue price is ABOVE the market price: buying in the market is cheaper.' : m.disc>=30 ? 'Deep discount (30%+).' : `Bigger is better; 30%+ earns full marks.`);
+  // 3. Demand / subscription (15)
+  if(s && s.times!=null){
+    const daysLeft = daysTo(it.close), early = it.status==='open' && daysLeft>2;
+    const pts = s.times>=1.5?15 : s.times>=1?12 : early ? 7+s.times*4 : s.times*10;
+    F('subs','Subscription demand', pts, 15, s.times.toFixed(2)+'×', s.times>=1?'Fully subscribed: strong demand.' : early?'Rights issues usually fill up in the last 2-3 days; partly scored as neutral.':'Under-subscribed: weak demand (promoters may take up the shortfall).');
+  } else F('subs','Subscription demand', 8, 15, '—', 'Not open yet: scored neutral.');
+  // 4. Trend (12)
+  if(vs){
+    let pts = 6; const why=[];
+    if(vs.sma50){ if(m.C>vs.sma50){pts+=3;why.push('above 50-day average');} else {pts-=3;why.push('below 50-day average');} }
+    if(vs.ret3M!=null){ pts += clamp(vs.ret3M/10,-3,3); why.push(`3M return ${pct(vs.ret3M)}`); }
+    F('trend','Price trend', clamp(pts,0,12), 12, vs.ret3M!=null?pct(vs.ret3M):'—', 'Stock is '+why.join(', ')+'.');
+  } else F('trend','Price trend', 6, 12, '—', 'No history: neutral.');
+  // 5. Liquidity (10): can you exit the new shares?
+  if(vs){
+    const cr = vs.avgValue/1e7;
+    F('liq','Liquidity (exit ease)', clamp((Math.log10(Math.max(cr,0.001))+2)/3,0,1)*10, 10, '₹'+(cr>=1?cr.toFixed(1)+' Cr':(cr*100).toFixed(1)+' L')+'/day',
+      cr>=10?'Very liquid.':cr>=1?'Reasonably liquid.':'Thinly traded: selling new shares may move the price.');
+  } else F('liq','Liquidity (exit ease)', 3, 10, '—', 'Unknown.');
+  // 6. Dilution (8)
+  if(m.dilution!=null) F('dil','Dilution', clamp(1-(m.dilution-20)/100,0,1)*8, 8, '+'+m.dilution.toFixed(0)+'% shares',
+    m.dilution>100?'Equity more than doubles: heavy dilution, the business must deploy a lot of new capital well.':m.dilution>40?'Significant dilution.':'Modest dilution.');
+  else F('dil','Dilution', 4, 8, '—', 'Ratio not announced.');
+
+  r.score = Math.round(r.factors.reduce((a,f)=>a+f.pts,0));
+  if(m.disc<=0) r.score = Math.min(r.score, 25);
+  r.stars = clamp(Math.round(r.score/20*2)/2, 0.5, 5);
+  if(r.score>=70){ r.cls='v-hi'; r.label='Attractive'; }
+  else if(r.score>=55){ r.cls='v-mid'; r.label='Moderate'; }
+  else if(r.score>=40){ r.cls='v-mid'; r.label='Weak'; }
+  else { r.cls='v-lo'; r.label='Avoid'; }
+
+  // ---- decisions with numbers
+  const reFair = m.reFair, reMkt = m.reMkt;
+  const applyEdge = m.C - m.P;                       // ₹ per RE if you apply and price holds
+  const riskAdj = vs ? applyEdge - m.C*(r.expMove/100)*0.5 : applyEdge*0.7;  // haircut half a typical move
+  r.applyEdge = applyEdge; r.riskAdjEdge = riskAdj;
+  const reTrading = it.status!=='closed' && it.renunciation && todayISO<=it.renunciation && (it.open? todayISO>=it.open : true);
+  // Holder (you already received REs)
+  if(m.disc<=0) r.holder = {act:'Sell RE / let others apply', cls:'neg', why:`Issue price ${inr(m.P)} ≥ market ${inr(m.C)}: applying makes no sense. ${reMkt>0?`Sell REs at ~${inr(reMkt)} each`:'Sell REs if a buyer bids anything'}; never pay above market.`};
+  else if(reMkt!=null && reMkt > applyEdge*1.02) r.holder = {act:'Sell your REs', cls:'pos', why:`RE sells at ${inr(reMkt)}, MORE than you'd gain by applying (${inr(applyEdge)} = CMP − issue price). Selling locks in the value today with no further risk.`};
+  else if(r.score>=55) r.holder = {act:'Apply (subscribe)', cls:'pos', why:`Each RE turns into a share worth ${inr(m.C)} for ${inr(m.P)}: ${inr(applyEdge)} gain per RE (≈${inr(Math.max(0,riskAdj))} after a risk haircut)${reMkt!=null?`, vs only ${inr(reMkt)} if you sell the RE`:''}.`};
+  else if(reMkt!=null && applyEdge>0 && reMkt < applyEdge*0.6 && m.disc>=5 && (r.probLoss==null || r.probLoss<25)) r.holder = {act:'Apply cautiously (RE underpriced)', cls:'', why:`The market pays only ${inr(reMkt)} for an RE worth ~${inr(applyEdge)}, so selling gives away ${((1-reMkt/applyEdge)*100).toFixed(0)}% of its value. But the score is weak (${r.score}/100)${r.probLoss!=null?`, with ≈${probTxt(r.probLoss)} chance the share is below ${inr(m.P)} at listing`:''}. Apply only with money you can keep invested, or sell part.`};
+  else r.holder = {act: reMkt!=null ? 'Prefer selling REs' : 'Apply only if you like the stock', cls:'neg', why:`Weak score ${r.score}/100. ${reMkt!=null?`Selling at ${inr(reMkt)} per RE avoids the risk of the price falling toward ${inr(m.P)}.`:'If you skip, try to SELL the REs during the renunciation window: an unused RE lapses and is worth ₹0.'}`};
+  // Non-holder (should you BUY REs from the market?)
+  if(reMkt==null) r.buyer = {act:reTrading?'Watch RE price':'No RE quote yet', cls:'', why:`Buying an RE is worth it only if RE price + ${inr(m.P)} is well below the share price ${inr(m.C)}. Max sensible RE price ≈ ${inr(Math.max(0,applyEdge*0.85))} (keeps a 15% margin on the gap).`};
+  else if(m.reGap>=5 && r.score>=55) r.buyer = {act:'Buy RE & apply', cls:'pos', why:`Effective cost ${inr(m.effCost)} (RE ${inr(reMkt)} + issue ${inr(m.P)}) vs share price ${inr(m.C)}: ${m.reGap.toFixed(1)}% cheaper than buying in the market.`};
+  else if(m.reGap>=5) r.buyer = {act:'RE cheap, but stock risky', cls:'', why:`Via RE you pay ${inr(m.effCost)} vs share price ${inr(m.C)} (${m.reGap.toFixed(1)}% cheaper). The overall score is only ${r.score}/100${r.cushionSigma!=null?` (cushion ${r.cushionSigma.toFixed(1)}σ)`:''}, so the share could fall before the new shares list. Only for investors who'd buy this stock anyway.`};
+  else if(m.reGap>0) r.buyer = {act:'Marginal: skip', cls:'', why:`Effective cost ${inr(m.effCost)} is only ${m.reGap.toFixed(1)}% below the share price ${inr(m.C)}: too thin for the 2-3 week wait and the price risk.`};
+  else r.buyer = {act:"Don't buy RE", cls:'neg', why:`RE ${inr(reMkt)} + issue ${inr(m.P)} = ${inr(m.effCost)}, which is ${Math.abs(m.reGap).toFixed(1)}% MORE than just buying the share at ${inr(m.C)}.`};
+  r.maxReBuy = Math.max(0, applyEdge*0.85);
+  r.short = `${r.holder.act}${reMkt!=null?' · RE '+inr(reMkt)+' vs fair '+inr(reFair):''}`;
+  return it._rate = r;
+}
+function probTxt(p){ return p==null?'—':p<1?'<1%':p>99?'>99%':p.toFixed(0)+'%'; }
+function ncdf(x){ const t=1/(1+0.2316419*Math.abs(x)); const d=0.3989423*Math.exp(-x*x/2);
+  const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return x>0?1-p:p; }
+function starsHtml(n){ let h=''; for(let i=1;i<=5;i++) h += `<i class="${n>=i?'f':n>=i-0.5?'h':'e'}">★</i>`; return `<span class="stars" title="${n} out of 5 stars" aria-label="${n} out of 5 stars">${h}</span>`; }
 function verdict(it){
-  const m = math(it);
-  if(m.disc==null) return {cls:'v-na', score:'—', t:'Awaiting price data', s:'Issue price or CMP not available yet'};
-  if(m.disc < 0) return {cls:'v-lo', score:pct(m.disc,0), t:'Issue price ABOVE market price', s:'Cheaper to buy in the market; renounce/sell RE if it has value'};
-  if(m.disc < 8) return {cls:'v-lo', score:'−'+m.disc.toFixed(0)+'%', t:'Thin discount to CMP', s:'Small cushion — price can slip below issue price'};
-  if(m.disc < 20) return {cls:'v-mid', score:'−'+m.disc.toFixed(0)+'%', t:'Moderate discount', s:`TERP ${inr(m.terp)} · RE fair value ${inr(m.reFair)}`};
-  return {cls:'v-hi', score:'−'+m.disc.toFixed(0)+'%', t:'Deep discount to CMP', s:`TERP ${inr(m.terp)} · RE fair value ${inr(m.reFair)}`};
+  const r = rate(it);
+  if(r.score==null) return {cls:'v-na', score:'—', t:'Not rated yet', s:r.short};
+  const m=r.m; const bits=[`Discount ${m.disc.toFixed(1)}%`];
+  if(r.cushionSigma!=null) bits.push(`cushion ${r.cushionSigma.toFixed(1)}σ`);
+  bits.push(`RE fair ${inr(m.reFair)}`); if(m.reMkt!=null) bits.push(`RE mkt ${inr(m.reMkt)}`);
+  return {cls:r.cls, score:`${r.score}<small>/100</small>`, t:`${starsHtml(r.stars)} ${r.label} · ${r.holder.act}`, s:bits.join(' · ')};
 }
 function statusPill(it){
   if(it.status==='open'){
@@ -309,6 +438,7 @@ function render(){
   const g = $('#grid');
   if(!DATA){ return; }
   if(view.tab==='cal') return renderCal(g);
+  if(view.tab==='rate') return renderRate(g);
   if(view.tab==='subs') return renderSubs(g);
   if(view.tab==='vol') return renderVol(g);
   let list = ISSUES.filter(i=>i.status===view.tab && matches(i));
@@ -358,6 +488,36 @@ function card(it){
       <a class="btn btn-alt" href="${esc(it.cgUrl)}" target="_blank" rel="noopener">Chittorgarh ↗</a>
     </div>
   </div>`;
+}
+
+/* ---------- RE Ratings tab ---------- */
+const LEARN = `<details class="learn"><summary>📘 New to rights issues? Read this first (2 min)</summary>
+  <p><b>What is a rights issue?</b> A listed company sells new shares to its <i>existing</i> shareholders, usually at a discount, in a fixed ratio. "3:5" here means 3 new shares for every 5 you held on the <b>record date</b>.</p>
+  <p><b>What is an RE (Rights Entitlement)?</b> Shortly after the record date, your demat account gets REs, one per new share you may buy. An RE is a temporary security. You can:</p>
+  <ul><li><b>Apply (subscribe):</b> pay the issue price and each RE becomes a share.</li>
+  <li><b>Sell (renounce) the RE</b> on the exchange during the RE trading window and pocket its price.</li>
+  <li><b>Do nothing:</b> the RE <b>lapses and becomes worth ₹0</b>, and your stake is diluted. This is the one choice that is never sensible.</li></ul>
+  <p><b>What is an RE worth?</b> Roughly <b>share price − issue price</b> (once the share trades ex-rights). If the share is ₹120 and the issue price ₹100, one RE is worth about ₹20. If the RE trades at ₹12, buying it and applying costs ₹112 for a ₹120 share. That's the "Buy RE &amp; apply" opportunity.</p>
+  <p><b>The risk:</b> new shares reach your demat 1–3 weeks after the issue closes. If the share price falls below the issue price by then, you lose. So the key question is: <i>is the discount big enough compared with how much this stock normally moves?</i> That's the "safety cushion (σ)" below. 1σ is one typical move; 2σ or more is comfortable.</p>
+  <p><b>How the score works (0–100):</b> cushion vs volatility 35 · discount 20 · subscription demand 15 · price trend 12 · liquidity 10 · dilution 8. 70+ Attractive ★★★★, 55–69 Moderate, 40–54 Weak, below 40 Avoid. It's a rules-based screen on public data, not a recommendation. Read the Letter of Offer: why the company needs the money matters as much as the numbers.</p>
+</details>`;
+function renderRate(g){
+  const list = ISSUES.filter(i=>(i.status!=='closed') && matches(i)).map(i=>({it:i, r:rate(i)}));
+  list.sort((a,b)=>(b.r.score??-1)-(a.r.score??-1));
+  if(!list.length){ g.innerHTML='<div class="note">No open or upcoming rights issues to rate.</div>'; return; }
+  g.innerHTML = `<div class="rhead">⭐ <b>RE Ratings</b> score every open and upcoming rights issue 0–100 and give a plain action: what to do <b>if you hold the shares</b> (you get REs) and <b>if you don't</b> (should you buy REs in the market?). Tap a company for the full scorecard and a ₹ worked example.</div>
+  <div style="grid-column:1/-1">${LEARN}</div>
+  <div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>Score</th><th>Rating</th><th>Discount</th><th>Cushion</th><th>P(below issue)</th><th>RE fair</th><th>RE market</th><th>Max RE buy</th><th>If you hold shares</th><th>If you don't hold</th></tr></thead><tbody>
+  ${list.map(({it,r})=>{ const m=r.m; return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${it.status} · closes ${fd(it.close)}</div></td>
+    <td>${r.score==null?'—':`<b>${r.score}</b><div class="sbar"><i style="width:${r.score}%"></i></div>`}</td>
+    <td>${r.score==null?'—':starsHtml(r.stars)+'<div style="font-size:.66rem">'+r.label+'</div>'}</td>
+    <td class="${m.disc>=0?'pos':'neg'}">${m.disc!=null?m.disc.toFixed(1)+'%':'—'}</td>
+    <td>${r.cushionSigma!=null?r.cushionSigma.toFixed(2)+'σ':'—'}</td>
+    <td>${probTxt(r.probLoss)}</td>
+    <td>${inr(m.reFair)}</td><td>${inr(m.reMkt)}</td><td>${r.score!=null?inr(r.maxReBuy):'—'}</td>
+    <td class="wrap"><b class="${r.holder?r.holder.cls:''}">${r.holder?r.holder.act:'—'}</b></td>
+    <td class="wrap"><b class="${r.buyer?r.buyer.cls:''}">${r.buyer?r.buyer.act:'—'}</b></td></tr>`;}).join('')}
+  </tbody></table></div>`;
 }
 
 /* ---------- Subscription tab ---------- */
@@ -423,7 +583,7 @@ function openDetail(id){
   if(m.dilution) reasons.push([m.dilution>50?'b':'n', `Equity expands by ${m.dilution.toFixed(1)}% if fully subscribed (${R.r} new for every ${R.h} held).`]);
   if(m.reMkt!=null) reasons.push([m.reGap>0?'g':'b', `RE trades at ${inr(m.reMkt)} → buying RE + paying issue price costs ${inr(m.effCost)}, ${Math.abs(m.reGap).toFixed(1)}% ${m.reGap>0?'cheaper':'costlier'} than buying shares at CMP.`]);
   const s = latestSub(it); if(s&&s.times!=null) reasons.push([s.times>=1?'g':'b', `Subscribed ${s.times.toFixed(2)}× as on ${fdt(s.at)}.`]);
-  if(st&&st.hl.w52&&m.P) reasons.push(['n', `52-week range ${inr(st.hl.w52.low)} – ${inr(st.hl.w52.high)}; issue price is ${((m.P-st.hl.w52.low)/st.hl.w52.low*100).toFixed(0)}% ${m.P>=st.hl.w52.low?'above':'below'} the 52W low.`]);
+  if(st&&st.hl.w52&&m.P) reasons.push(['n', `52-week range ${inr(st.hl.w52.low)} – ${inr(st.hl.w52.high)}; issue price is ${Math.abs((m.P-st.hl.w52.low)/st.hl.w52.low*100).toFixed(0)}% ${m.P>=st.hl.w52.low?'above':'below'} the 52W low.`]);
 
   const subsRows = dailySubs(it.subsHistory);
   const allSubs = (it.subsHistory||[]).filter(x=>x.times!=null);
@@ -445,6 +605,8 @@ function openDetail(id){
       <button class="dclose" id="dclose" aria-label="Close">✕</button></div>
     <div class="dbody">
       <div class="verdict ${v.cls}"><div class="vscore">${v.score}</div><div class="vtxt"><div class="vt">${v.t}</div><div class="vs">${v.s}</div></div></div>
+
+      ${decisionHtml(it)}
 
       <div class="sect"><h3>Rights issue details <span class="rt">${statusPill(it)}</span></h3>
         <div class="kgrid">
@@ -559,6 +721,43 @@ function openDetail(id){
   };
   $('#cHeld').oninput = calc; $('#cAdd').oninput = calc; calc();
   if(st){ drawChart(it); $('#rngSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; chartRange=+b.dataset.n; $('#rngSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); drawChart(it); }; }
+}
+function decisionHtml(it){
+  const r = rate(it), m = r.m;
+  if(r.score==null) return `<div class="sect"><h3>Should I opt for this RE?</h3><div class="small">Rating appears once the issue price and market price are both known.</div></div>${LEARN}`;
+  const R = m.R, held = R ? R.h*Math.max(1,Math.round(100/R.h)) : 100, ent = R ? Math.floor(held*R.r/R.h) : 0;
+  const ex = ent ? `
+    <h4 style="font-size:.78rem;margin:14px 0 6px">Worked example: you hold ${nf(held)} shares → ${nf(ent)} REs</h4>
+    <div class="tw"><table class="ft"><thead><tr><th>Choice</th><th>You pay</th><th>You get (at today's price)</th><th>Net ₹ vs doing nothing</th></tr></thead><tbody>
+      <tr class="${r.holder.act.startsWith('Apply')?'hl':''}"><td>Apply for all ${nf(ent)}</td><td>${inr(ent*m.P,0)}</td><td>${nf(ent)} shares ≈ ${inr(ent*m.C,0)}</td><td class="${m.C>=m.P?'pos':'neg'}">${inr(ent*(m.C-m.P),0)}</td></tr>
+      <tr class="${/Sell/.test(r.holder.act)?'hl':''}"><td>Sell all ${nf(ent)} REs</td><td>₹0</td><td>${m.reMkt!=null?inr(ent*m.reMkt,0)+' cash':'RE price × '+nf(ent)}</td><td class="pos">${m.reMkt!=null?inr(ent*m.reMkt,0):'≈ '+inr(ent*Math.max(0,m.reFair),0)+' at fair value'}</td></tr>
+      <tr><td>Do nothing (RE lapses)</td><td>₹0</td><td>Nothing; your stake is diluted</td><td class="neg">${inr(0,0)} (you give up ${inr(ent*Math.max(0,m.reFair),0)})</td></tr>
+    </tbody></table></div>
+    <div class="small">If the share falls ${r.expMove!=null?r.expMove.toFixed(1)+'% (one typical move over the waiting period)':'10%'} before listing, applying would be worth ${inr(ent*(m.C*(1-(r.expMove??10)/100)-m.P),0)} instead. Break-even share price at listing = issue price ${inr(m.P)}.</div>` : '';
+  return `<div class="sect"><h3>Should I opt for this RE? <span class="rt">${starsHtml(r.stars)} <b>${r.score}/100 · ${r.label}</b></span></h3>
+    <div class="dec">
+      <div class="dbox ${r.holder.cls}"><div class="who">If you hold the shares (you received REs)</div><div class="act">${r.holder.act}</div><div class="why">${r.holder.why}</div></div>
+      <div class="dbox ${r.buyer.cls}"><div class="who">If you don't hold: buy REs in the market?</div><div class="act">${r.buyer.act}</div><div class="why">${r.buyer.why}</div></div>
+    </div>
+    <div class="kgrid" style="margin-top:10px">
+      <div class="fact"><div class="k">RE fair value</div><div class="v">${inr(m.reFair)}<small> ${m.exRights?'CMP − issue':'TERP − issue'}</small></div></div>
+      <div class="fact"><div class="k">RE market price</div><div class="v">${inr(m.reMkt)}${m.reMkt!=null&&m.reFair>0?`<small class="${m.reMkt<=m.reFair?'pos':'neg'}"> ${((m.reMkt/m.reFair-1)*100).toFixed(0)}% vs fair</small>`:''}</div></div>
+      <div class="fact"><div class="k">Max sensible RE buy price</div><div class="v">${inr(r.maxReBuy)}</div></div>
+      <div class="fact"><div class="k">Effective cost via RE</div><div class="v">${inr(m.effCost)}</div></div>
+      <div class="fact"><div class="k">Safety cushion</div><div class="v">${r.cushionSigma!=null?r.cushionSigma.toFixed(2)+'σ':'—'}</div></div>
+      <div class="fact"><div class="k">Chance below issue price at listing</div><div class="v">${probTxt(r.probLoss)}</div></div>
+      <div class="fact"><div class="k">Typical move till listing</div><div class="v">${r.expMove!=null?'±'+r.expMove.toFixed(1)+'%':'—'}<small> ~${r.daysAtRisk} trading days</small></div></div>
+      <div class="fact"><div class="k">Annual volatility</div><div class="v">${r.vs?(r.vs.annVol*100).toFixed(0)+'%':'—'}</div></div>
+    </div>
+    ${it.detail&&it.detail.terms&&!/full/i.test(it.detail.terms)?`<div class="small" style="color:var(--amber)">⚠ <b>Partly-paid issue (${esc(it.detail.terms)}):</b> you pay part of ${inr(m.P)} now and the rest on later "calls". Until then you hold partly-paid shares, which trade under a separate code, often at a discount and with lower liquidity. The ₹ maths here uses the full issue price.</div>`:''}
+    <h4 style="font-size:.78rem;margin:14px 0 6px">Scorecard</h4>
+    <div class="tw"><table class="ft"><thead><tr><th>Factor</th><th>Value</th><th>Points</th><th style="text-align:left">Why</th></tr></thead><tbody>
+      ${r.factors.map(f=>`<tr><td>${f.name}</td><td>${f.value}</td><td><b>${f.pts}</b>/${f.max}</td><td class="wrap">${f.why}</td></tr>`).join('')}
+      <tr><td><b>Total</b></td><td></td><td><b>${r.score}</b>/100</td><td class="wrap">${starsHtml(r.stars)} ${r.label}${m.disc<=0?' (capped at 25 because the issue price is not below the market)':''}</td></tr>
+    </tbody></table></div>
+    ${ex}
+    <div class="small">Rules-based screen on public data for education. Not investment advice. Prices move during the day; re-check the RE and share price before acting.</div>
+  </div>${LEARN}`;
 }
 function closeDetail(){ $('#dov').classList.remove('show'); document.body.style.overflow=''; }
 
