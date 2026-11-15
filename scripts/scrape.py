@@ -264,9 +264,15 @@ def detail(slug, rid):
 
 # ------------------------------------------------------------- yahoo prices
 def yahoo(symbol, rng="max"):
+    """Daily candles. range=max makes Yahoo downsample to weekly/monthly, so full
+    history is requested with period1/period2, which keeps 1d granularity."""
     q = urllib.parse.quote(symbol)
+    if rng == "max":
+        span = f"period1=0&period2={int(time.time()) + 86400}"
+    else:
+        span = f"range={rng}"
     for host in ("query1", "query2"):
-        txt = fetch(f"https://{host}.finance.yahoo.com/v8/finance/chart/{q}?range={rng}&interval=1d"
+        txt = fetch(f"https://{host}.finance.yahoo.com/v8/finance/chart/{q}?{span}&interval=1d"
                     "&includePrePost=false&events=div%2Csplit", tries=2)
         if not txt:
             continue
@@ -380,6 +386,18 @@ def price_stats(y):
     return stats
 
 
+def yahoo_search(term):
+    """Resolve an ISIN / scrip code to Yahoo tickers on NSE/BSE."""
+    txt = fetch("https://query2.finance.yahoo.com/v1/finance/search?q=" + urllib.parse.quote(term)
+                + "&quotesCount=6&newsCount=0", tries=2)
+    try:
+        quotes = json.loads(txt or "{}").get("quotes") or []
+    except json.JSONDecodeError:
+        return []
+    syms = [q.get("symbol") for q in quotes if str(q.get("symbol", "")).endswith((".NS", ".BO"))]
+    return sorted(syms, key=lambda s: not s.endswith(".NS"))
+
+
 def pick_symbol(d):
     cands = []
     if d.get("nse"):
@@ -387,6 +405,40 @@ def pick_symbol(d):
     if d.get("bse"):
         cands.append(d["bse"] + ".BO")
     return cands
+
+
+def is_daily(cs):
+    if len(cs) < 6:
+        return True
+    gaps = sorted((date.fromisoformat(b[0]) - date.fromisoformat(a[0])).days for a, b in zip(cs[-40:], cs[-39:]))
+    return gaps[len(gaps) // 2] <= 3
+
+
+def stock_history(det):
+    tried = []
+    cands = pick_symbol(det)
+    for i in range(2):
+        for sym in cands:
+            if sym in tried:
+                continue
+            tried.append(sym)
+            y = yahoo(sym)
+            time.sleep(0.3)
+            if y and len(y["candles"]) >= 2:
+                if not is_daily(y["candles"]):  # safety net: fall back to 10y daily
+                    y2 = yahoo(sym, rng="10y")
+                    if y2 and is_daily(y2["candles"]):
+                        y = y2
+                return y
+        if i == 0:  # nothing worked -> ask Yahoo search by ISIN / scrip code
+            cands = []
+            for term in (det.get("isin"), det.get("bse"), det.get("nse")):
+                if term:
+                    cands += [s for s in yahoo_search(term) if s not in cands]
+                    if cands:
+                        break
+            log("  yahoo search", det.get("isin"), "->", cands or "none")
+    return None
 
 
 # -------------------------------------------------------------------- build
@@ -491,12 +543,9 @@ def main():
         # ---- price & volume (recent / active only)
         stats, re_stats = None, None
         if recent and det:
-            for sym in pick_symbol(det):
-                y = yahoo(sym)
-                time.sleep(0.3)
-                if y and len(y["candles"]) >= 2:
-                    stats = price_stats(y)
-                    break
+            y = stock_history(det)
+            if y:
+                stats = price_stats(y)
             re_syms = []
             if det.get("reNse"):
                 re_syms.append(det["reNse"] + ".NS")
