@@ -1,10 +1,7 @@
-"""Temporary probe: dump the text of one ICRA rationale page."""
-import sys, os
+"""Temporary probe: full credit profile for Natco (ICRA) after the iframe fix."""
+import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import credit
 os.makedirs("probe", exist_ok=True)
-t = credit.doc_text("https://www.icra.in/Rationale/ShowRationaleReport/?Id=139357") or "NONE"
-open("probe/icra.txt", "w").write(t)
-raw = credit._fetch("https://www.icra.in/Rationale/ShowRationaleReport/?Id=139357") or "NONE"
-open("probe/icra_raw.html", "w").write(raw[:200000])
-print(len(t), len(raw))
+p = credit.credit_profile(nse="NATCOPHARM")
+open("probe/natco.json", "w").write(json.dumps({"rating": p and p["rating"], "docs": p and p["docs"], "flags": p and p["flags"], "pastD": p and p["pastDefaults"]}, indent=1))
