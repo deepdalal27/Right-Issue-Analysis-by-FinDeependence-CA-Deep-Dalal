@@ -338,7 +338,7 @@ function creditAssess(it){
   if(rt && rt.rank===8){ o.cap = 30; o.capWhy = 'Capped at 30: the company is currently rated D (in default).'; o.cls='cr-bad'; }
   else if(pastD || flagTypes.has('insolvency') || flagTypes.has('ots')){
     pts = Math.min(pts, 5); o.cap = 50; o.capWhy = 'Capped at 50: default / insolvency / settlement in recent history.'; o.cls='cr-bad';
-    if(pastD) notes.push(`<b>Past default:</b> rated D ${c.pastDefaults.slice(0,3).map(d=>`(${esc(d.agency||'')} ${d.date?esc(d.date):''})`).join(', ')} within the agency's 3-year history.`);
+    if(pastD) notes.push(`<b>Past default:</b> rated D ${c.pastDefaults.slice(0,3).map(d=>`(${[d.agency,d.date].filter(Boolean).map(esc).join(', ')})`).join(', ')} within the agency's 3-year history.`);
     if(flagTypes.has('insolvency')) notes.push('Rating documents mention <b>insolvency / NCLT / CIRP</b> proceedings.');
     if(flagTypes.has('ots')) notes.push('Rating documents mention a <b>one-time settlement or debt restructuring</b>.');
   }
