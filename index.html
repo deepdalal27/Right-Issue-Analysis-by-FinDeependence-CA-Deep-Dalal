@@ -149,6 +149,44 @@ table.ft tr.hl td{background:#eafaf1}
 .widewrap table.ft td:first-child{white-space:normal;min-width:170px}
 .widewrap table.ft td b{cursor:pointer}
 .cr-ig{background:#dcfce7;color:#15803d}.cr-sub{background:#fef3c7;color:#92400e}.cr-bad{background:#fee2e2;color:#b91c1c}.cr-na{background:#f3f4f6;color:#4b5563}
+/* ticker chips, hero prices, key row */
+.tickers{display:flex;gap:6px;flex-wrap:wrap}
+.tk{font-size:.74rem;font-weight:800;color:#111827;background:#eef2f7;border:1px solid #d5dde8;border-radius:8px;padding:3px 8px;letter-spacing:.2px}
+.tk span{font-weight:600;color:#4b5563;margin-right:3px}
+.tk.re{background:#fff7ed;border-color:#fed7aa}
+.hero{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hp{border-radius:12px;padding:9px 10px;border:1px solid var(--line);min-width:0}
+.hp .k{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#374151}
+.hp .v{font-size:1.22rem;font-weight:800;color:#0b0f19;margin-top:2px;line-height:1.15;overflow-wrap:anywhere}
+.hp .s{font-size:.68rem;font-weight:700;margin-top:2px;color:#374151}
+.hp.cmp{background:#ecfeff;border-color:#a5f3fc}.hp.iss{background:#f5f3ff;border-color:#ddd6fe}.hp.re{background:#fff7ed;border-color:#fed7aa}
+.keyrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#0f172a;border-radius:12px;padding:9px 10px}
+.keyrow .k{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8}
+.keyrow .v{font-size:.98rem;font-weight:800;color:#fff;margin-top:2px}
+.keyrow .v small{font-size:.62rem;font-weight:600;color:#cbd5e1}
+@media(max-width:400px){.hp .v{font-size:1.05rem}.keyrow .v{font-size:.88rem}}
+/* eye-catching scorecard */
+table.sc{border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;border:1px solid #1f2937}
+table.sc th{background:#0f172a;color:#fff;font-size:.68rem;letter-spacing:.6px}
+table.sc td{color:#0b0f19;font-weight:600;font-size:.8rem;background:#fff}
+table.sc tr:nth-child(even) td{background:#f8fafc}
+table.sc td.wrap{color:#1f2937;font-weight:500}
+table.sc .ptsv{display:inline-block;min-width:54px;text-align:center;font-weight:800;border-radius:8px;padding:3px 7px;font-size:.78rem}
+.pt-hi{background:#dcfce7;color:#14532d}.pt-mid{background:#fef3c7;color:#78350f}.pt-lo{background:#fee2e2;color:#7f1d1d}
+table.sc .pbar2{height:6px;border-radius:99px;background:#e5e7eb;margin-top:5px;overflow:hidden}
+table.sc .pbar2 i{display:block;height:100%;border-radius:99px}
+table.sc tr.tot td{background:#0f172a;color:#fff;font-size:.92rem;font-weight:800}
+table.sc tr.tot td.wrap{color:#e2e8f0}
+.sc-head{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;border-radius:12px;padding:12px 14px;margin:14px 0 8px}
+.sc-head .big{font-size:1.9rem;font-weight:800;line-height:1}
+.sc-head .big small{font-size:.8rem;color:#94a3b8}
+.sc-head .lbl{font-size:.95rem;font-weight:800}
+.sc-head .lbl div{font-size:.7rem;color:#cbd5e1;font-weight:600;margin-top:2px}
+/* shareholding */
+.shpbar{display:flex;height:16px;border-radius:99px;overflow:hidden;margin:6px 0 10px}
+.shpbar i{display:block;height:100%}
+.shplg{display:flex;gap:10px;flex-wrap:wrap;font-size:.72rem;font-weight:700;color:#1f2937}
+.shplg b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .pwarn{font-size:.68rem;line-height:1.5;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:6px 9px}
 .crrow{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .ev-list{list-style:none;display:flex;flex-direction:column;gap:6px}
@@ -257,6 +295,33 @@ function cmpOf(it){
   const d = it.stock && it.stock.daily; return d && d.length ? d[d.length-1][4] : null;
 }
 function mcapTxt(v){ if(v==null) return '—'; return v>=1000 ? '₹'+Math.round(v).toLocaleString('en-IN')+' Cr' : '₹'+v.toFixed(v<100?1:0)+' Cr'; }
+function sharesTxt(cr){ if(cr==null) return '—'; return cr>=1 ? cr.toFixed(2)+' Cr' : (cr*100).toFixed(2)+' L'; }
+function shpOf(it){ const s = it.credit && it.credit.shp; if(!s||!s.rows) return null;
+  const q = s.quarters||[]; const last = k => { const v=(s.rows[k]||[]); return v.length? v[v.length-1] : null; };
+  const prev = k => { const v=(s.rows[k]||[]); return v.length>1? v[v.length-2] : null; };
+  return {q, last, prev, rows:s.rows, asOf:q[q.length-1]}; }
+function tickerChips(it){
+  const d = it.detail||{}; const a=[];
+  if(d.nse) a.push(`<span class="tk"><span>NSE</span>${esc(d.nse)}</span>`);
+  if(d.bse) a.push(`<span class="tk"><span>BSE</span>${esc(d.bse)}</span>`);
+  if(d.reNse) a.push(`<span class="tk re"><span>RE NSE</span>${esc(d.reNse)}</span>`);
+  if(d.reBse) a.push(`<span class="tk re"><span>RE BSE</span>${esc(d.reBse)}</span>`);
+  return a.length ? `<div class="tickers">${a.join('')}</div>` : '';
+}
+function heroHtml(it, m){
+  const st = it.stock, chg = it.chgPct ?? (st&&st.chgPct), live = it.priceCheck&&it.priceCheck.used.src==='Live price';
+  const sh = shpOf(it), holders = sh&&sh.last('Shareholders'), hp = sh&&sh.prev('Shareholders');
+  return `<div class="hero">
+      <div class="hp cmp"><div class="k">CMP${live?' · live':''}</div><div class="v">${inr(m.C)}</div><div class="s ${chg==null?'':chg>=0?'pos':'neg'}">${chg!=null?pct(chg,2)+' today':'&nbsp;'}</div></div>
+      <div class="hp iss"><div class="k">Issue price</div><div class="v">${inr(it.price)}</div><div class="s ${m.disc==null?'':m.disc>=0?'pos':'neg'}">${m.disc!=null?Math.abs(m.disc).toFixed(1)+'% '+(m.disc>=0?'below':'above')+' CMP':'&nbsp;'}</div></div>
+      <div class="hp re"><div class="k">RE price</div><div class="v">${inr(m.reMkt)}</div><div class="s">fair ${inr(m.reFair)}</div></div>
+    </div>
+    <div class="keyrow">
+      <div><div class="k">Market cap</div><div class="v">${mcapTxt(it.mcapCr)}</div></div>
+      <div><div class="k">Shares outstanding</div><div class="v">${sharesTxt(it.sharesCr)}</div></div>
+      <div><div class="k">Shareholders</div><div class="v">${holders!=null?nf(holders):'—'}${holders!=null&&hp?` <small>${holders>=hp?'+':''}${nf(holders-hp)} QoQ</small>`:''}</div></div>
+    </div>`;
+}
 function priceWarn(it){
   const pcx = it.priceCheck; if(!pcx || !(pcx.mismatch||[]).length) return '';
   return `<div class="pwarn">⚠ Price check: ${pcx.mismatch.map(s=>`${esc(s.src)} shows ${inr(s.price)}`).join(', ')}, but the actual ${esc(pcx.used.src.toLowerCase())} is <b>${inr(pcx.used.price)}</b>${pcx.used.asOf?' ('+fdt(pcx.used.asOf)+')':''}. Using ${inr(pcx.used.price)}.</div>`;
@@ -547,18 +612,17 @@ function card(it){
   return `<div class="card">
     <div class="card-top">
       ${it.logo?`<img class="clogo" src="${esc(it.logo)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
-      <div style="min-width:0"><h3>${esc(it.name)}</h3><div class="sym">${esc(symLine(it))}</div><div class="crrow">${creditPills(it)}</div></div>
+      <div style="min-width:0"><h3>${esc(it.name)}</h3><div class="crrow">${creditPills(it)}</div></div>
       <div class="badges">${statusPill(it)}${it.status==='open'&&dl!=null&&dl>=0?`<span class="pill p-x">${dl===0?'Closes today':dl+'d left'}</span>`:''}</div>
     </div>
+    ${tickerChips(it)}
+    ${heroHtml(it, m)}
     <div class="facts">
-      <div class="fact"><div class="k">CMP${it.priceCheck&&it.priceCheck.used.src==='Live price'?' · live':''}</div><div class="v">${inr(m.C)} ${(it.chgPct??(st&&st.chgPct))!=null?`<small class="${(it.chgPct??st.chgPct)>=0?'pos':'neg'}">${pct(it.chgPct??st.chgPct,2)}</small>`:''}</div></div>
-      <div class="fact"><div class="k">Market cap</div><div class="v">${mcapTxt(it.mcapCr)}</div></div>
-      <div class="fact"><div class="k">Issue price</div><div class="v">${inr(it.price)}</div></div>
-      <div class="fact"><div class="k">Discount</div><div class="v ${m.disc==null?'':m.disc>=0?'pos':'neg'}">${m.disc!=null?m.disc.toFixed(1)+'%':'—'}</div></div>
       <div class="fact"><div class="k">Ratio</div><div class="v">${R?`${R.r}:${R.h}`:esc(it.ratio||'—')} <small>${R?'R:H':''}</small></div></div>
       <div class="fact"><div class="k">Size</div><div class="v">${it.sizeCr!=null?'₹'+it.sizeCr+' Cr':'—'}${it.sizeCr&&it.mcapCr?`<small> ${(it.sizeCr/it.mcapCr*100).toFixed(0)}% of mcap</small>`:''}</div></div>
-      <div class="fact"><div class="k">RE price</div><div class="v">${inr(m.reMkt)}</div></div>
-      <div class="fact"><div class="k">RE fair val</div><div class="v">${inr(m.reFair)}</div></div>
+      <div class="fact"><div class="k">Promoters</div><div class="v">${(()=>{const sh=shpOf(it);const p=sh&&sh.last('Promoters');return p!=null?p.toFixed(1)+'%':'—';})()}</div></div>
+      <div class="fact"><div class="k">Rights shares</div><div class="v">${(()=>{const n=(it.detail&&it.detail.issueShares)||(it.subscription&&it.subscription.shares);return n?sharesTxt(n/1e7):'—';})()}</div></div>
+      <div class="fact"><div class="k">Dilution</div><div class="v">${m.dilution!=null?'+'+m.dilution.toFixed(0)+'%':'—'}</div></div>
       <div class="fact"><div class="k">52W H / L</div><div class="v" style="font-size:.74rem">${st&&st.hl.w52?`${inr(st.hl.w52.high)} / ${inr(st.hl.w52.low)}`:'—'}</div></div>
     </div>
     ${priceWarn(it)}
@@ -596,16 +660,16 @@ function renderRate(g){
   if(!list.length){ g.innerHTML='<div class="note">No open or upcoming rights issues to rate.</div>'; return; }
   g.innerHTML = `<div class="rhead">⭐ <b>RE Ratings</b> score every open and upcoming rights issue 0–100 and give a plain action: what to do <b>if you hold the shares</b> (you get REs) and <b>if you don't</b> (should you buy REs in the market?). Tap a company for the full scorecard and a ₹ worked example.</div>
   <div style="grid-column:1/-1">${LEARN}</div>
-  <div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>CMP</th><th>Mkt cap</th><th>Score</th><th>Rating</th><th>Credit</th><th>Discount</th><th>Cushion</th><th>P(below issue)</th><th>RE fair</th><th>RE market</th><th>Max RE buy</th><th>If you hold shares</th><th>If you don't hold</th></tr></thead><tbody>
+  <div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>CMP</th><th>Issue price</th><th>RE price</th><th>Mkt cap</th><th>Shareholders</th><th>Score</th><th>Rating</th><th>Credit</th><th>Discount</th><th>Cushion</th><th>P(below issue)</th><th>RE fair</th><th>Max RE buy</th><th>If you hold shares</th><th>If you don't hold</th></tr></thead><tbody>
   ${list.map(({it,r})=>{ const m=r.m; return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${it.status} · closes ${fd(it.close)}</div></td>
-    <td>${inr(m.C)}${it.priceCheck&&it.priceCheck.mismatch&&it.priceCheck.mismatch.length?' <span title="Sources disagree; see details">⚠</span>':''}</td><td>${mcapTxt(it.mcapCr)}</td>
+    <td>${inr(m.C)}${it.priceCheck&&it.priceCheck.mismatch&&it.priceCheck.mismatch.length?' <span title="Sources disagree; see details">⚠</span>':''}</td><td><b>${inr(it.price)}</b></td><td><b>${inr(m.reMkt)}</b></td><td>${mcapTxt(it.mcapCr)}</td><td>${(()=>{const sh=shpOf(it),h=sh&&sh.last('Shareholders');return h!=null?nf(h):'—';})()}</td>
     <td>${r.score==null?'—':`<b>${r.score}</b><div class="sbar"><i style="width:${r.score}%"></i></div>`}</td>
     <td>${r.score==null?'—':starsHtml(r.stars)+'<div style="font-size:.66rem">'+r.label+'</div>'}</td>
     <td style="text-align:left">${creditPills(it)||'<span class="pill cr-na">—</span>'}</td>
     <td class="${m.disc>=0?'pos':'neg'}">${m.disc!=null?m.disc.toFixed(1)+'%':'—'}</td>
     <td>${r.cushionSigma!=null?r.cushionSigma.toFixed(2)+'σ':'—'}</td>
     <td>${probTxt(r.probLoss)}</td>
-    <td>${inr(m.reFair)}</td><td>${inr(m.reMkt)}</td><td>${r.score!=null?inr(r.maxReBuy):'—'}</td>
+    <td>${inr(m.reFair)}</td><td>${r.score!=null?inr(r.maxReBuy):'—'}</td>
     <td class="wrap"><b class="${r.holder?r.holder.cls:''}">${r.holder?r.holder.act:'—'}</b></td>
     <td class="wrap"><b class="${r.buyer?r.buyer.cls:''}">${r.buyer?r.buyer.act:'—'}</b></td></tr>`;}).join('')}
   </tbody></table></div>`;
@@ -699,6 +763,7 @@ function openDetail(id){
 
       ${decisionHtml(it)}
       ${creditHtml(it)}
+      ${shpHtml(it)}
 
       <div class="sect"><h3>Rights issue details <span class="rt">${statusPill(it)}</span></h3>
         <div class="kgrid">
@@ -711,6 +776,7 @@ function openDetail(id){
           ${kv('Terms of payment', esc(d.terms||'—'))}
           ${kv('CMP (share)', inr(m.C)+(it.priceCheck?`<small> ${esc(it.priceCheck.used.src)}${it.priceCheck.used.asOf?', '+fd(it.priceCheck.used.asOf):''}</small>`:''))}
           ${kv('Market cap', mcapTxt(it.mcapCr))}
+          ${kv('Shares outstanding', sharesTxt(it.sharesCr))}
           ${kv('RE price (market)', inr(m.reMkt))}
           ${kv('Discount to CMP', m.disc!=null?`<span class="${m.disc>=0?'pos':'neg'}">${m.disc.toFixed(1)}%</span>`:'—')}
           ${kv('TERP', inr(m.terp))}
@@ -848,14 +914,40 @@ function decisionHtml(it){
       <div class="fact"><div class="k">Annual volatility</div><div class="v">${r.vs?(r.vs.annVol*100).toFixed(0)+'%':'—'}</div></div>
     </div>
     ${it.detail&&it.detail.terms&&!/full/i.test(it.detail.terms)?`<div class="small" style="color:var(--amber)">⚠ <b>Partly-paid issue (${esc(it.detail.terms)}):</b> you pay part of ${inr(m.P)} now and the rest on later "calls". Until then you hold partly-paid shares, which trade under a separate code, often at a discount and with lower liquidity. The ₹ maths here uses the full issue price.</div>`:''}
-    <h4 style="font-size:.78rem;margin:14px 0 6px">Scorecard</h4>
-    <div class="tw"><table class="ft"><thead><tr><th>Factor</th><th>Value</th><th>Points</th><th style="text-align:left">Why</th></tr></thead><tbody>
-      ${r.factors.map(f=>`<tr><td>${f.name}</td><td>${f.value}</td><td><b>${f.pts}</b>/${f.max}</td><td class="wrap">${f.why}</td></tr>`).join('')}
-      <tr><td><b>Total</b></td><td></td><td><b>${r.score}</b>/100</td><td class="wrap">${starsHtml(r.stars)} ${r.label}${m.disc<=0?' (capped at 25 because the issue price is not below the market)':''}${r.capNote?' · '+r.capNote:''}</td></tr>
+    <div class="sc-head"><div class="big">${r.score}<small>/100</small></div><div class="lbl">${starsHtml(r.stars)} ${r.label}<div>Scorecard: 7 factors, points shown against their maximum</div></div></div>
+    <div class="tw"><table class="ft sc"><thead><tr><th>Factor</th><th>Value</th><th>Points</th><th style="text-align:left">Why</th></tr></thead><tbody>
+      ${r.factors.map(f=>{const q=f.max?f.pts/f.max:0;const c=q>=0.7?'hi':q>=0.4?'mid':'lo';const col=q>=0.7?'#16a34a':q>=0.4?'#d97706':'#dc2626';
+        return `<tr><td>${f.name}</td><td>${f.value}</td><td><span class="ptsv pt-${c}">${f.pts} / ${f.max}</span><div class="pbar2"><i style="width:${Math.round(q*100)}%;background:${col}"></i></div></td><td class="wrap">${f.why}</td></tr>`;}).join('')}
+      <tr class="tot"><td>Total score</td><td></td><td>${r.score} / 100</td><td class="wrap">${starsHtml(r.stars)} ${r.label}${m.disc<=0?' (capped at 25 because the issue price is not below the market)':''}${r.capNote?' · '+r.capNote:''}</td></tr>
     </tbody></table></div>
     ${ex}
     <div class="small">Rules-based screen on public data for education. Not investment advice. Prices move during the day; re-check the RE and share price before acting.</div>
   </div>${LEARN}`;
+}
+function shpHtml(it){
+  const sh = shpOf(it);
+  if(!sh) return `<div class="sect"><h3>Shareholders &amp; shareholding pattern</h3><div class="small">Not available yet (refreshes daily with the company's quarterly filing data).</div></div>`;
+  const COL = {Promoters:'#6d28d9', FIIs:'#2563eb', DIIs:'#0891b2', Government:'#64748b', Public:'#f59e0b', Others:'#9ca3af'};
+  const cats = Object.keys(COL).filter(k=>sh.rows[k]);
+  const latest = cats.map(k=>[k, sh.last(k)||0]);
+  const holders = sh.rows.Shareholders||[];
+  const n = sh.q.length, show = Math.min(n, 6), qs = sh.q.slice(-show);
+  const row = (k, fmt) => { const v=(sh.rows[k]||[]).slice(-show); return `<tr><td>${k==='Shareholders'?'<b>No. of shareholders</b>':`<b style="color:${COL[k]}">●</b> ${k}`}</td>${v.map(x=>`<td>${x==null?'—':fmt(x)}</td>`).join('')}<td class="${(v[v.length-1]??0)-(v[v.length-2]??0)>=0?'pos':'neg'}">${v.length>1&&v[v.length-1]!=null&&v[v.length-2]!=null?((v[v.length-1]-v[v.length-2]>=0?'+':'')+fmt(v[v.length-1]-v[v.length-2])):'—'}</td></tr>`; };
+  const ah = holders.length ? holders[holders.length-1] : null, a4 = holders.length>4 ? holders[holders.length-5] : null;
+  return `<div class="sect"><h3>Shareholders &amp; shareholding pattern <span class="rt">as of ${esc(sh.asOf||'')}</span></h3>
+    <div class="keyrow" style="margin-bottom:10px">
+      <div><div class="k">Shareholders</div><div class="v">${ah!=null?nf(ah):'—'}</div></div>
+      <div><div class="k">Change in 1 year</div><div class="v">${ah!=null&&a4?`${ah>=a4?'+':''}${nf(ah-a4)} <small>(${pct((ah/a4-1)*100,0)})</small>`:'—'}</div></div>
+      <div><div class="k">Promoter holding</div><div class="v">${sh.last('Promoters')!=null?sh.last('Promoters').toFixed(2)+'%':'—'}</div></div>
+    </div>
+    <div class="shpbar">${latest.map(([k,v])=>`<i title="${k} ${v}%" style="width:${v}%;background:${COL[k]}"></i>`).join('')}</div>
+    <div class="shplg">${latest.map(([k,v])=>`<span><b style="background:${COL[k]}"></b>${k} ${v.toFixed(2)}%</span>`).join('')}</div>
+    <div class="tw" style="margin-top:10px"><table class="ft"><thead><tr><th>Category</th>${qs.map(q=>`<th>${esc(q)}</th>`).join('')}<th>QoQ</th></tr></thead><tbody>
+      ${cats.map(k=>row(k, x=>x.toFixed(2)+'%')).join('')}
+      ${holders.length?row('Shareholders', x=>nf(x)):''}
+    </tbody></table></div>
+    <div class="small">From the quarterly shareholding pattern each listed company files with NSE/BSE (via Screener.in). The shareholder count is the number of holders the company reports (the exchange format consolidates holdings by PAN). A fast-rising count often means more retail interest; a falling promoter stake before a rights issue is worth questioning.</div>
+  </div>`;
 }
 function creditHtml(it){
   const c = it.credit, ca = creditAssess(it);
