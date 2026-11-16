@@ -1,0 +1,58 @@
+{
+ "rating": null,
+ "docs": [
+  {
+   "agency": "ICRA",
+   "when": "28 Nov 2025",
+   "url": "https://www.icra.in/Rationale/ShowRationaleReport/?Id=139357",
+   "grade": null,
+   "raw": null,
+   "outlook": "Positive",
+   "inc": false,
+   "withdrawn": false,
+   "unreadable": null
+  },
+  {
+   "agency": "ICRA",
+   "when": "1 Aug 2025",
+   "url": "https://www.icra.in/Rationale/ShowRationaleReport/?Id=136846",
+   "grade": null,
+   "raw": null,
+   "outlook": "Positive",
+   "inc": false,
+   "withdrawn": false,
+   "unreadable": null
+  },
+  {
+   "agency": "ICRA",
+   "when": "29 Apr 2025",
+   "url": "https://www.icra.in/Rationale/ShowRationaleReport/?Id=134802",
+   "grade": null,
+   "raw": null,
+   "outlook": "Positive",
+   "inc": false,
+   "withdrawn": false,
+   "unreadable": null
+  },
+  {
+   "agency": "ICRA",
+   "when": "30 Apr 2024",
+   "url": "https://www.icra.in/Rationale/ShowRationaleReport/?Id=127308",
+   "notRead": true
+  },
+  {
+   "agency": "ICRA",
+   "when": "28 Apr 2023",
+   "url": "https://www.icra.in/Rationale/ShowRationaleReport/?Id=119701",
+   "notRead": true
+  },
+  {
+   "agency": "ICRA",
+   "when": "28 Apr 2022",
+   "url": "https://www.icra.in/Rationale/ShowRationaleReport/?Id=111431",
+   "notRead": true
+  }
+ ],
+ "flags": [],
+ "pastD": []
+}
