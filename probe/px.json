@@ -1,0 +1,264 @@
+{
+ "IEML.NS": {
+  "meta": {
+   "regularMarketPrice": 358.5,
+   "chartPreviousClose": 43.2,
+   "previousClose": null,
+   "regularMarketDayHigh": null,
+   "regularMarketDayLow": null,
+   "regularMarketVolume": null,
+   "fiftyTwoWeekHigh": 125.25,
+   "fiftyTwoWeekLow": 31.5,
+   "regularMarketTime": 1721764800,
+   "symbol": "IEML.NS"
+  },
+  "events": null,
+  "last5": [
+   [
+    1794195900,
+    34.75,
+    12000
+   ],
+   [
+    1794368700,
+    35.20000076293945,
+    74000
+   ],
+   [
+    1794455100,
+    34.54999923706055,
+    13500
+   ],
+   [
+    1794541500,
+    36.0,
+    121000
+   ],
+   [
+    1794800700,
+    null,
+    null
+   ]
+  ],
+  "adjclose_last": [
+   34.54999923706055,
+   36.0,
+   null
+  ],
+  "screener": {
+   "price": null,
+   "mcap": 139.0,
+   "fv": null,
+   "equity": 18.0
+  }
+ },
+ "URBAN.NS": {
+  "meta": {
+   "regularMarketPrice": 369.25,
+   "chartPreviousClose": 146.2,
+   "previousClose": null,
+   "regularMarketDayHigh": null,
+   "regularMarketDayLow": null,
+   "regularMarketVolume": null,
+   "fiftyTwoWeekHigh": 168.25,
+   "fiftyTwoWeekLow": 87.1,
+   "regularMarketTime": 1721764800,
+   "symbol": "URBAN.NS"
+  },
+  "events": null,
+  "last5": [
+   [
+    1794195900,
+    92.5,
+    30400
+   ],
+   [
+    1794368700,
+    92.75,
+    27200
+   ],
+   [
+    1794455100,
+    100.05000305175781,
+    112800
+   ],
+   [
+    1794541500,
+    94.25,
+    68000
+   ],
+   [
+    1794800700,
+    null,
+    null
+   ]
+  ],
+  "adjclose_last": [
+   100.05000305175781,
+   94.25,
+   null
+  ],
+  "screener": {
+   "price": null,
+   "mcap": 167.0,
+   "fv": null,
+   "equity": 9.0
+  }
+ },
+ "NOVARTIND.NS": {
+  "meta": {
+   "regularMarketPrice": 1722.4,
+   "chartPreviousClose": 1897.6,
+   "previousClose": null,
+   "regularMarketDayHigh": 1744.1,
+   "regularMarketDayLow": 1672.5,
+   "regularMarketVolume": 27243,
+   "fiftyTwoWeekHigh": 2588.8,
+   "fiftyTwoWeekLow": 672.25,
+   "regularMarketTime": 1793699982,
+   "symbol": "NOVARTIND.NS"
+  },
+  "events": null,
+  "last5": [
+   [
+    1794195900,
+    1569.552978515625,
+    146273
+   ],
+   [
+    1794368700,
+    1568.0999755859375,
+    113713
+   ],
+   [
+    1794455100,
+    1589.5999755859375,
+    43262
+   ],
+   [
+    1794541500,
+    1520.4000244140625,
+    47355
+   ],
+   [
+    1794800700,
+    null,
+    null
+   ]
+  ],
+  "adjclose_last": [
+   1589.5999755859375,
+   1520.4000244140625,
+   null
+  ]
+ },
+ "PARTYCRUS.NS": {
+  "meta": {
+   "regularMarketPrice": 122.0,
+   "chartPreviousClose": 99.0,
+   "previousClose": null,
+   "regularMarketDayHigh": null,
+   "regularMarketDayLow": null,
+   "regularMarketVolume": null,
+   "fiftyTwoWeekHigh": 113.85,
+   "fiftyTwoWeekLow": 63.65,
+   "regularMarketTime": 1721764800,
+   "symbol": "PARTYCRUS.NS"
+  },
+  "events": null,
+  "last5": [
+   [
+    1794195900,
+    87.0999984741211,
+    14000
+   ],
+   [
+    1794368700,
+    85.5,
+    7000
+   ],
+   [
+    1794455100,
+    85.5,
+    8000
+   ],
+   [
+    1794541500,
+    85.0,
+    2000
+   ],
+   [
+    1794800700,
+    null,
+    null
+   ]
+  ],
+  "adjclose_last": [
+   85.5,
+   85.0,
+   null
+  ],
+  "screener": {
+   "price": null,
+   "mcap": 126.0,
+   "fv": null,
+   "equity": 12.0
+  }
+ },
+ "RAJGOR.NS": {
+  "err": "HTTP Error 404: Not Found"
+ },
+ "SUNREST.NS": {
+  "meta": {
+   "regularMarketPrice": 61.65,
+   "chartPreviousClose": 37.65,
+   "previousClose": null,
+   "regularMarketDayHigh": null,
+   "regularMarketDayLow": null,
+   "regularMarketVolume": null,
+   "fiftyTwoWeekHigh": 54.0,
+   "fiftyTwoWeekLow": 29.55,
+   "regularMarketTime": 1721764800,
+   "symbol": "SUNREST.NS"
+  },
+  "events": null,
+  "last5": [
+   [
+    1794195900,
+    35.70000076293945,
+    0
+   ],
+   [
+    1794368700,
+    36.0,
+    3200
+   ],
+   [
+    1794455100,
+    36.0,
+    0
+   ],
+   [
+    1794541500,
+    36.0,
+    0
+   ],
+   [
+    1794800700,
+    null,
+    null
+   ]
+  ],
+  "adjclose_last": [
+   36.0,
+   36.0,
+   null
+  ],
+  "screener": {
+   "price": null,
+   "mcap": 14.4,
+   "fv": null,
+   "equity": 4.29
+  }
+ }
+}
