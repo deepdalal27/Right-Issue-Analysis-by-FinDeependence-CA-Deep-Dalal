@@ -475,6 +475,14 @@ def reconcile_price(it, stats, pc, det):
         q, hi, lo = stats.get("metaPrice"), stats.get("metaDayHigh"), stats.get("metaDayLow")
         live_ok = (q and hi and lo and lo <= q <= hi and stats.get("metaTime")
                    and datetime.fromtimestamp(stats["metaTime"], IST).date().isoformat() >= (stats.get("asOf") or ""))
+        # hard guards: NSE/BSE daily price bands never exceed 20%, and the quote must not
+        # contradict a same-day Screener price that agrees with the last close
+        if live_ok and close and abs(q / close - 1) > 0.20:
+            live_ok = False
+        scr = (pc or {}).get("price")
+        scr_today = pc and datetime.fromtimestamp(pc.get("fetchedAt") or 0, IST).date() == TODAY
+        if live_ok and scr and scr_today and close and abs(q / scr - 1) > PRICE_TOL and abs(close / scr - 1) <= 0.05:
+            live_ok = False
         if live_ok:
             used = {"src": "Live price", "price": q, "asOf": datetime.fromtimestamp(stats["metaTime"], IST).strftime("%Y-%m-%dT%H:%M"),
                     "via": stats.get("symbol"), "range": [lo, hi]}
