@@ -1,5 +1,0 @@
-200 183064 517320 -> https://www.screener.in/company/517320/
-200 190004 532776 -> https://www.screener.in/company/SHIVAMAUTO/
-404 25 532532 -> https://www.screener.in/company/532532/
-200 190004 SHIVAMAUTO -> https://www.screener.in/company/SHIVAMAUTO/
-429 33 500180 -> https://www.screener.in/company/500180/
