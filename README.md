@@ -18,7 +18,9 @@ Live tracker for **open, upcoming and recently closed rights issues** in India. 
    - Credit is a 20-point factor in the score. A company rated **D now is capped at 30**; one with a default, insolvency or settlement in recent history is capped at **50**; reported debt-servicing delays cap it at 55.
    - Credit data is cached for 24 h per company (`CREDIT_TTL_HOURS`).
 7. **Accurate CMP & market cap on every card**: CMP is the **live exchange price only if it lies inside today's traded high–low range**, otherwise the **latest daily close**. Yahoo's quote field and Chittorgarh's CMP have been seen ~10× off for some SME stocks (e.g. Indian Emulsifiers ₹358.5 vs actual ₹36.00), so they're used only as cross-checks. Any source more than 10% away is shown as a ⚠ price-check warning, with every source listed in the details. Market cap = shares outstanding (Screener) × CMP. An RE quote above the share price is rejected as bad data.
-8. **Rights math**: discount to CMP, TERP, Rights Entitlement fair value vs market RE price, an entitlement calculator, and a calendar of every rights-issue event.
+8. **Shareholders & shareholding pattern**: number of shareholders and Promoter / FII / DII / Government / Public % for the last quarters, from the quarterly shareholding pattern filed with NSE/BSE (via Screener.in), with quarter-on-quarter and 1-year change.
+9. **Upfront, high-contrast card**: NSE/BSE (and RE) codes as bold chips; CMP, issue price and RE price in large type; market cap, shares outstanding and shareholders in a dark key row. The scorecard is a dark, colour-coded table with a points bar per factor.
+10. **Rights math**: discount to CMP, TERP, Rights Entitlement fair value vs market RE price, an entitlement calculator, and a calendar of every rights-issue event.
 
 ## How it works
 - `scripts/scrape.py` (Python standard library only) reads Chittorgarh's rights-issue reports (#75 list, #197 live subscription) and each issue's detail page. It also pulls daily candles from Yahoo Finance (`.NS`, or `.BO` when there's no NSE symbol). It writes `data/rights.json`.

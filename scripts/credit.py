@@ -21,7 +21,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = 5  # bump when parsing changes so cached profiles are rebuilt
+VERSION = 6  # bump when parsing changes so cached profiles are rebuilt
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 AGENCY = r"(?:CARE|\[ICRA\]|ICRA|CRISIL|IND|ACUITE|Acuite|IVR|BWR|Brickwork|INFOMERICS|PR)"
@@ -139,6 +139,16 @@ def screener(ident):
     if fin["interest"] and fin["opProfit"] is not None and not fin["financialCo"]:
         fin["icr"] = round((fin["opProfit"] + (fin["otherIncome"] or 0)) / fin["interest"], 2)
     out["fin"] = fin
+    # shareholding pattern (quarterly SHP filed with the exchanges): category % and the
+    # number of shareholders (exchanges count holders consolidated by PAN)
+    sh, srows = table("shareholding")
+    if sh and srows:
+        keep = {}
+        for k, v in srows.items():
+            kk = k.strip()
+            if re.match(r"(Promoters|FIIs|DIIs|Government|Public|Others|No of Shareholders)$", kk):
+                keep["Shareholders" if kk.startswith("No of") else kk] = v[-8:]
+        out["shp"] = {"quarters": sh[-8:], "rows": keep}
     for c in out["cons"]:
         m = re.search(r"pledged ([\d.]+)%", c)
         if m:
@@ -317,6 +327,7 @@ def credit_profile(nse=None, bse=None, isin=None, log=print, max_docs=3):
         "bookValue": sc.get("bookValue"),
         "roce": sc.get("roce"), "roe": sc.get("roe"),
         "fin": sc.get("fin"),
+        "shp": sc.get("shp"),
         "pledgePct": sc.get("pledgePct"),
         "cons": sc.get("cons", [])[:8],
         "pros": sc.get("pros", [])[:6],
