@@ -21,7 +21,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = 2  # bump when parsing changes so cached profiles are rebuilt
+VERSION = 3  # bump when parsing changes so cached profiles are rebuilt
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 AGENCY = r"(?:CARE|\[ICRA\]|ICRA|CRISIL|IND|ACUITE|Acuite|IVR|BWR|Brickwork|INFOMERICS|PR)"
@@ -140,7 +140,7 @@ def screener(ident):
 
 
 # ----------------------------------------------------------- rating documents
-def doc_text(url):
+def doc_text(url, _depth=0):
     b = _fetch(url, binary=True)
     if not b:
         return None
@@ -154,6 +154,14 @@ def doc_text(url):
             except (OSError, subprocess.TimeoutExpired):
                 return None
     t = b.decode("utf-8", "replace")
+    # Some agencies (e.g. ICRA) serve an HTML shell that embeds the rationale PDF in an
+    # iframe; follow that embedded document (the same link the page offers to open).
+    if _depth == 0:
+        m = re.search(r'<iframe[^>]+(?:data-pdf-url|src)="([^"]*(?:[Pp]df|Rational)[^"]*)"', t)
+        if m:
+            inner = doc_text(urllib.parse.urljoin(url, html.unescape(m.group(1))), _depth=1)
+            if inner and len(inner) > 500:
+                return inner
     t = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", t, flags=re.S | re.I)
     t = re.sub(r"<br\s*/?>|</(p|tr|div|li|h\d)>", "\n", t, flags=re.I)
     return html.unescape(re.sub(r"<[^>]+>", " ", t))
