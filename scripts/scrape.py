@@ -354,7 +354,14 @@ def price_stats(y):
         "symbol": y["symbol"],
         "exchange": meta.get("fullExchangeName") or meta.get("exchangeName"),
         "asOf": last[0],
-        "ltp": meta.get("regularMarketPrice") or last[4],
+        # CMP = close of the latest daily candle (actual exchange trades). Yahoo's
+        # regularMarketPrice quote field has been seen 10x off for SME stocks, so it is kept
+        # only as a cross-check.
+        "ltp": last[4],
+        "metaPrice": meta.get("regularMarketPrice"),
+        "metaDayHigh": meta.get("regularMarketDayHigh"),
+        "metaDayLow": meta.get("regularMarketDayLow"),
+        "metaTime": meta.get("regularMarketTime"),
         "prevClose": prev_close,
         "chgPct": round((last[4] - prev_close) / prev_close * 100, 2) if prev_close else None,
         "firstTrade": cs[0][0],
@@ -446,6 +453,90 @@ def stock_history(det):
     return None
 
 
+# ------------------------------------------------------------ price checks
+PRICE_TOL = 0.10  # sources disagreeing by more than 10% are flagged
+
+
+def reconcile_price(it, stats, pc, det):
+    """Pick one CMP from actual trades and cross-check every other source.
+
+    1. Live quote, only if it lies inside today's traded high-low range (proves it is a
+       real print from today's session, not a stale or mis-scaled value).
+    2. Otherwise the close of the latest daily candle (actual exchange trades).
+    Screener / Chittorgarh / the raw quote are cross-checks: a source that differs by more
+    than 10% from both the chosen price and the last close is reported as a mismatch.
+    Market cap = shares outstanding x chosen CMP, where shares come from Screener
+    (its market cap / its price) or equity capital / face value.
+    """
+    srcs = []
+    used = None
+    close = stats.get("ltp") if stats else None
+    if stats:
+        q, hi, lo = stats.get("metaPrice"), stats.get("metaDayHigh"), stats.get("metaDayLow")
+        live_ok = (q and hi and lo and lo <= q <= hi and stats.get("metaTime")
+                   and datetime.fromtimestamp(stats["metaTime"], IST).date().isoformat() >= (stats.get("asOf") or ""))
+        # hard guards: NSE/BSE daily price bands never exceed 20%, and the quote must not
+        # contradict a same-day Screener price that agrees with the last close
+        if live_ok and close and abs(q / close - 1) > 0.20:
+            live_ok = False
+        scr = (pc or {}).get("price")
+        scr_today = pc and datetime.fromtimestamp(pc.get("fetchedAt") or 0, IST).date() == TODAY
+        if live_ok and scr and scr_today and close and abs(q / scr - 1) > PRICE_TOL and abs(close / scr - 1) <= 0.05:
+            live_ok = False
+        if live_ok:
+            used = {"src": "Live price", "price": q, "asOf": datetime.fromtimestamp(stats["metaTime"], IST).strftime("%Y-%m-%dT%H:%M"),
+                    "via": stats.get("symbol"), "range": [lo, hi]}
+            srcs.append(used)
+        if close:
+            c = {"src": "Exchange close", "price": close, "asOf": stats.get("asOf"), "via": stats.get("symbol")}
+            srcs.append(c)
+            used = used or c
+        if q and not live_ok:
+            srcs.append({"src": "Yahoo quote", "price": q, "asOf": None, "note": "outside today's traded range" if hi and lo else "no traded range to verify"})
+    if pc and pc.get("price"):
+        srcs.append({"src": "Screener", "price": pc["price"],
+                     "asOf": datetime.fromtimestamp(pc.get("fetchedAt") or 0, IST).date().isoformat()})
+    if it.get("cgCmp"):
+        srcs.append({"src": "Chittorgarh", "price": it["cgCmp"], "asOf": None})
+    if not srcs:
+        it["cmp"] = None
+        return
+    if used is None:  # no exchange candles at all: fall back to Screener, then Chittorgarh
+        used = srcs[0]
+    it["cmp"] = round(used["price"], 2)
+    if used["src"] == "Live price" and close:
+        it["chgPct"] = round((used["price"] / close - 1) * 100, 2)
+    elif stats and stats.get("chgPct") is not None:
+        it["chgPct"] = stats["chgPct"]
+    refs = [x for x in (used["price"], close) if x]
+
+    def off(p):
+        return all(abs(p / r - 1) > PRICE_TOL for r in refs)
+    mism = [s for s in srcs if s is not used and s["src"] != "Exchange close" and s["price"] and off(s["price"])]
+    it["priceCheck"] = {"used": used, "sources": srcs, "mismatch": mism}
+    if mism:
+        log("  price check", it["name"], used["src"], used["price"], [(s["src"], s["price"]) for s in mism])
+    # an RE can never be worth more than the share itself -> treat such a quote as bad data
+    if it.get("reCmp") is not None and it["cmp"] and it["reCmp"] >= it["cmp"]:
+        it["priceCheck"]["reRejected"] = it["reCmp"]
+        it["reCmp"] = None
+    # market cap from shares outstanding
+    fin = (pc or {}).get("fin") or {}
+    shares_cr, basis = None, None
+    if pc and pc.get("marketCapCr") and pc.get("price"):
+        shares_cr = pc["marketCapCr"] / pc["price"]
+        basis = f"{shares_cr:.3f} Cr shares (Screener) × CMP ₹{it['cmp']:g}"
+    else:
+        fv = (pc or {}).get("faceValue") or num((det or {}).get("faceValue"))
+        if fin.get("equity") and fv:
+            shares_cr = fin["equity"] / fv
+            basis = f"{shares_cr:.3f} Cr shares (equity ₹{fin['equity']:g} Cr ÷ FV ₹{fv:g}) × CMP ₹{it['cmp']:g}"
+    if shares_cr:
+        it["sharesCr"] = round(shares_cr, 4)
+        it["mcapCr"] = round(shares_cr * it["cmp"], 2)
+        it["mcapBasis"] = basis
+
+
 # -------------------------------------------------------------------- build
 def status_of(op, cl, today):
     t = today.isoformat()
@@ -501,7 +592,7 @@ def main():
             "price": num(r.get("Issue price (Rs. Per Share)")),
             "sizeCr": num(r.get("Issue Size (Rs Cr)")),
             "ratio": clean(r.get("Rights Issue Ratio")) or None,
-            "cmp": num(r.get("CMP of Share")),
+            "cgCmp": num(r.get("CMP of Share")),  # cross-check only; see reconcile_price
             "reCmp": num(r.get("CMP of Rights Entitlement")),
         }
         it["status"] = status_of(it["open"], it["close"], TODAY)
@@ -561,15 +652,13 @@ def main():
                 time.sleep(0.3)
                 if y and y["candles"]:
                     cs = y["candles"]
-                    re_stats = {"symbol": sym, "ltp": y["meta"].get("regularMarketPrice") or cs[-1][4],
+                    re_stats = {"symbol": sym, "ltp": cs[-1][4],
                                 "asOf": cs[-1][0], "hl": hl_of(cs), "totalVol": sum(c[5] for c in cs),
                                 "avgVol": avg(c[5] for c in cs), "daily": cs}
                     break
         it["stock"] = stats or (None if recent else p.get("stock"))
         it["re"] = re_stats or p.get("re")
-        if stats and not it["cmp"]:
-            it["cmp"] = stats["ltp"]
-        if re_stats and not it["reCmp"]:
+        if re_stats:
             it["reCmp"] = re_stats["ltp"]
         # ---- credit rating & default history (cached for CREDIT_TTL per company)
         pc = p.get("credit")
@@ -580,6 +669,7 @@ def main():
             except Exception as e:  # noqa: BLE001 - never let one company break the run
                 log("  credit failed", it["name"], e)
         it["credit"] = pc
+        reconcile_price(it, stats or it.get("stock"), pc, det)
         issues.append(it)
         if recent:
             log(f"{it['status']:8} {it['name'][:40]:40} detail={'y' if det else 'n'} "

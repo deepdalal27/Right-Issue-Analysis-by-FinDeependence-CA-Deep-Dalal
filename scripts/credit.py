@@ -21,7 +21,7 @@ import time
 import urllib.parse
 import urllib.request
 
-VERSION = 3  # bump when parsing changes so cached profiles are rebuilt
+VERSION = 5  # bump when parsing changes so cached profiles are rebuilt
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 AGENCY = r"(?:CARE|\[ICRA\]|ICRA|CRISIL|IND|ACUITE|Acuite|IVR|BWR|Brickwork|INFOMERICS|PR)"
@@ -89,10 +89,17 @@ def screener(ident):
     if m:
         for li in re.findall(r"<li.*?</li>", m.group(1), re.S):
             name = re.search(r'class="name">(.*?)</span>', li, re.S)
-            nums = re.findall(r'class="number">(.*?)</span>', li, re.S)
-            if name and nums:
-                top[_clean(name.group(1))] = [_num(_clean(n)) for n in nums]
+            if not name:
+                continue
+            label = _clean(name.group(1))
+            # read the ratio as plain text after its label, e.g. "Current Price ₹ 36.0"
+            rest = _clean(li).split(label, 1)[-1]
+            nums = [_num(x) for x in re.findall(r"-?\d[\d,]*\.?\d*", rest)]
+            if nums:
+                top[label] = nums
     out["marketCapCr"] = (top.get("Market Cap") or [None])[0]
+    out["price"] = (top.get("Current Price") or [None])[0]
+    out["faceValue"] = (top.get("Face Value") or [None])[0]
     out["bookValue"] = (top.get("Book Value") or [None])[0]
     out["roce"] = (top.get("ROCE") or [None])[0]
     out["roe"] = (top.get("ROE") or [None])[0]
@@ -305,6 +312,8 @@ def credit_profile(nse=None, bse=None, isin=None, log=print, max_docs=3):
         "v": VERSION,
         "screenerUrl": sc["url"],
         "marketCapCr": sc.get("marketCapCr"),
+        "price": sc.get("price"),
+        "faceValue": sc.get("faceValue"),
         "bookValue": sc.get("bookValue"),
         "roce": sc.get("roce"), "roe": sc.get("roe"),
         "fin": sc.get("fin"),
