@@ -21,6 +21,11 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import credit  # noqa: E402
+
+CREDIT_TTL = int(os.environ.get("CREDIT_TTL_HOURS", "24")) * 3600
+
 IST = timezone(timedelta(hours=5, minutes=30))
 TODAY = datetime.now(IST).date()
 OUT = os.environ.get("OUT", "site/data/rights.json")
@@ -566,6 +571,15 @@ def main():
             it["cmp"] = stats["ltp"]
         if re_stats and not it["reCmp"]:
             it["reCmp"] = re_stats["ltp"]
+        # ---- credit rating & default history (cached for CREDIT_TTL per company)
+        pc = p.get("credit")
+        fresh = pc and time.time() - (pc.get("fetchedAt") or 0) < CREDIT_TTL
+        if recent and det and not fresh and (det.get("nse") or det.get("bse")):
+            try:
+                pc = credit.credit_profile(nse=det.get("nse"), bse=det.get("bse"), isin=det.get("isin"), log=log) or pc
+            except Exception as e:  # noqa: BLE001 - never let one company break the run
+                log("  credit failed", it["name"], e)
+        it["credit"] = pc
         issues.append(it)
         if recent:
             log(f"{it['status']:8} {it['name'][:40]:40} detail={'y' if det else 'n'} "
