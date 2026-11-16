@@ -21,6 +21,7 @@ import time
 import urllib.parse
 import urllib.request
 
+VERSION = 2  # bump when parsing changes so cached profiles are rebuilt
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 AGENCY = r"(?:CARE|\[ICRA\]|ICRA|CRISIL|IND|ACUITE|Acuite|IVR|BWR|Brickwork|INFOMERICS|PR)"
@@ -190,6 +191,13 @@ def parse_rating(text, url, agency_hint, when):
     head = t[: cut.start()] if cut and cut.start() > 200 else t[:4000]
     tail = t[len(head):]
     cur = _grades(head)
+    if not cur:
+        # e.g. ICRA web pages carry "Rationale" in their header, so the table window is empty:
+        # fall back to the document body up to the rating-history annexure
+        hist = re.search(r"Annexure[- ]?(?:II|2)|Rating history|History of rating", t, re.I)
+        body = t[: hist.start()] if hist and hist.start() > 500 else t[:15000]
+        cur = _grades(body)
+        head, tail = body, t[len(body):]
     lt = [g for g in cur if not g[3]] or cur
     res = {"url": url, "agency": AGENCY_NAMES.get(agency_hint, agency_hint.upper() or None), "when": when,
            "grade": None, "raw": None, "rank": None, "outlook": None, "inc": False, "withdrawn": False,
@@ -286,6 +294,7 @@ def credit_profile(nse=None, bse=None, isin=None, log=print, max_docs=3):
             flags.append({**f, "agency": d.get("agency"), "when": d.get("when"), "url": d["url"]})
     prof = {
         "fetchedAt": int(time.time()),
+        "v": VERSION,
         "screenerUrl": sc["url"],
         "marketCapCr": sc.get("marketCapCr"),
         "bookValue": sc.get("bookValue"),

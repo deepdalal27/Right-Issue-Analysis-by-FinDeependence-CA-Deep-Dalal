@@ -573,7 +573,7 @@ def main():
             it["reCmp"] = re_stats["ltp"]
         # ---- credit rating & default history (cached for CREDIT_TTL per company)
         pc = p.get("credit")
-        fresh = pc and time.time() - (pc.get("fetchedAt") or 0) < CREDIT_TTL
+        fresh = pc and pc.get("v") == credit.VERSION and time.time() - (pc.get("fetchedAt") or 0) < CREDIT_TTL
         if recent and det and not fresh and (det.get("nse") or det.get("bse")):
             try:
                 pc = credit.credit_profile(nse=det.get("nse"), bse=det.get("bse"), isin=det.get("isin"), log=log) or pc
