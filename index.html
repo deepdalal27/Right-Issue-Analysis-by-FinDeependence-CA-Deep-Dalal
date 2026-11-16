@@ -149,6 +149,7 @@ table.ft tr.hl td{background:#eafaf1}
 .widewrap table.ft td:first-child{white-space:normal;min-width:170px}
 .widewrap table.ft td b{cursor:pointer}
 .cr-ig{background:#dcfce7;color:#15803d}.cr-sub{background:#fef3c7;color:#92400e}.cr-bad{background:#fee2e2;color:#b91c1c}.cr-na{background:#f3f4f6;color:#4b5563}
+.pwarn{font-size:.68rem;line-height:1.5;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:6px 9px}
 .crrow{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .ev-list{list-style:none;display:flex;flex-direction:column;gap:6px}
 .ev-list li{font-size:.74rem;line-height:1.5;background:var(--bg);border-radius:9px;padding:7px 10px}
@@ -251,7 +252,15 @@ function ratioOf(it){
   const m = String(it.ratio||'').match(/(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/);
   return m ? {r:+m[1], h:+m[2]} : null;
 }
-function cmpOf(it){ return (it.stock && it.stock.ltp) || it.cmp || null; }
+function cmpOf(it){
+  if(it.cmp!=null) return it.cmp;                       // reconciled by the scraper (exchange close first)
+  const d = it.stock && it.stock.daily; return d && d.length ? d[d.length-1][4] : null;
+}
+function mcapTxt(v){ if(v==null) return '—'; return v>=1000 ? '₹'+Math.round(v).toLocaleString('en-IN')+' Cr' : '₹'+v.toFixed(v<100?1:0)+' Cr'; }
+function priceWarn(it){
+  const pcx = it.priceCheck; if(!pcx || !(pcx.mismatch||[]).length) return '';
+  return `<div class="pwarn">⚠ Price check: ${pcx.mismatch.map(s=>`${esc(s.src)} shows ${inr(s.price)}`).join(', ')}, but the actual ${esc(pcx.used.src.toLowerCase())} is <b>${inr(pcx.used.price)}</b>${pcx.used.asOf?' ('+fdt(pcx.used.asOf)+')':''}. Using ${inr(pcx.used.price)}.</div>`;
+}
 function math(it){
   const P = it.price, C = cmpOf(it), R = ratioOf(it);
   const o = {P, C, R};
@@ -532,8 +541,8 @@ function card(it){
   const volHtml = st ? `<div class="mini">
       <div class="fact"><div class="k">Vol today</div><div class="v">${compact(st.volume.lastDay)}</div></div>
       <div class="fact"><div class="k">Avg 1M/day</div><div class="v">${compact(st.volume.avg1M)}</div></div>
-      <div class="fact"><div class="k">52W H</div><div class="v">${inr(st.hl.w52&&st.hl.w52.high)}</div></div>
-      <div class="fact"><div class="k">52W L</div><div class="v">${inr(st.hl.w52&&st.hl.w52.low)}</div></div></div>` : '';
+      <div class="fact"><div class="k">Avg 1Y/day</div><div class="v">${compact(st.volume.avg1Y)}</div></div>
+      <div class="fact"><div class="k">Vol vs 1M</div><div class="v">${st.volume.avg1M?(st.volume.lastDay/st.volume.avg1M).toFixed(1)+'×':'—'}</div></div></div>` : '';
   const dl = daysTo(it.close);
   return `<div class="card">
     <div class="card-top">
@@ -542,13 +551,17 @@ function card(it){
       <div class="badges">${statusPill(it)}${it.status==='open'&&dl!=null&&dl>=0?`<span class="pill p-x">${dl===0?'Closes today':dl+'d left'}</span>`:''}</div>
     </div>
     <div class="facts">
+      <div class="fact"><div class="k">CMP${it.priceCheck&&it.priceCheck.used.src==='Live price'?' · live':''}</div><div class="v">${inr(m.C)} ${(it.chgPct??(st&&st.chgPct))!=null?`<small class="${(it.chgPct??st.chgPct)>=0?'pos':'neg'}">${pct(it.chgPct??st.chgPct,2)}</small>`:''}</div></div>
+      <div class="fact"><div class="k">Market cap</div><div class="v">${mcapTxt(it.mcapCr)}</div></div>
       <div class="fact"><div class="k">Issue price</div><div class="v">${inr(it.price)}</div></div>
+      <div class="fact"><div class="k">Discount</div><div class="v ${m.disc==null?'':m.disc>=0?'pos':'neg'}">${m.disc!=null?m.disc.toFixed(1)+'%':'—'}</div></div>
       <div class="fact"><div class="k">Ratio</div><div class="v">${R?`${R.r}:${R.h}`:esc(it.ratio||'—')} <small>${R?'R:H':''}</small></div></div>
-      <div class="fact"><div class="k">Size</div><div class="v">${it.sizeCr!=null?'₹'+it.sizeCr+' Cr':'—'}</div></div>
-      <div class="fact"><div class="k">CMP</div><div class="v">${inr(m.C)} ${st&&st.chgPct!=null?`<small class="${st.chgPct>=0?'pos':'neg'}">${pct(st.chgPct,2)}</small>`:''}</div></div>
+      <div class="fact"><div class="k">Size</div><div class="v">${it.sizeCr!=null?'₹'+it.sizeCr+' Cr':'—'}${it.sizeCr&&it.mcapCr?`<small> ${(it.sizeCr/it.mcapCr*100).toFixed(0)}% of mcap</small>`:''}</div></div>
       <div class="fact"><div class="k">RE price</div><div class="v">${inr(m.reMkt)}</div></div>
       <div class="fact"><div class="k">RE fair val</div><div class="v">${inr(m.reFair)}</div></div>
+      <div class="fact"><div class="k">52W H / L</div><div class="v" style="font-size:.74rem">${st&&st.hl.w52?`${inr(st.hl.w52.high)} / ${inr(st.hl.w52.low)}`:'—'}</div></div>
     </div>
+    ${priceWarn(it)}
     <div class="dates">
       <div>Record<b>${fd(it.record)}</b></div>
       <div>Opens<b>${fd(it.open)}</b></div>
@@ -583,8 +596,9 @@ function renderRate(g){
   if(!list.length){ g.innerHTML='<div class="note">No open or upcoming rights issues to rate.</div>'; return; }
   g.innerHTML = `<div class="rhead">⭐ <b>RE Ratings</b> score every open and upcoming rights issue 0–100 and give a plain action: what to do <b>if you hold the shares</b> (you get REs) and <b>if you don't</b> (should you buy REs in the market?). Tap a company for the full scorecard and a ₹ worked example.</div>
   <div style="grid-column:1/-1">${LEARN}</div>
-  <div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>Score</th><th>Rating</th><th>Credit</th><th>Discount</th><th>Cushion</th><th>P(below issue)</th><th>RE fair</th><th>RE market</th><th>Max RE buy</th><th>If you hold shares</th><th>If you don't hold</th></tr></thead><tbody>
+  <div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>CMP</th><th>Mkt cap</th><th>Score</th><th>Rating</th><th>Credit</th><th>Discount</th><th>Cushion</th><th>P(below issue)</th><th>RE fair</th><th>RE market</th><th>Max RE buy</th><th>If you hold shares</th><th>If you don't hold</th></tr></thead><tbody>
   ${list.map(({it,r})=>{ const m=r.m; return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${it.status} · closes ${fd(it.close)}</div></td>
+    <td>${inr(m.C)}${it.priceCheck&&it.priceCheck.mismatch&&it.priceCheck.mismatch.length?' <span title="Sources disagree; see details">⚠</span>':''}</td><td>${mcapTxt(it.mcapCr)}</td>
     <td>${r.score==null?'—':`<b>${r.score}</b><div class="sbar"><i style="width:${r.score}%"></i></div>`}</td>
     <td>${r.score==null?'—':starsHtml(r.stars)+'<div style="font-size:.66rem">'+r.label+'</div>'}</td>
     <td style="text-align:left">${creditPills(it)||'<span class="pill cr-na">—</span>'}</td>
@@ -618,9 +632,9 @@ function dailySubs(h){
 function renderVol(g){
   const list = ISSUES.filter(i=>i.stock && i.status!=='closed' && matches(i)).concat(ISSUES.filter(i=>i.stock && i.status==='closed' && matches(i)).slice(0,25));
   if(!list.length){ g.innerHTML='<div class="note">No price/volume data available yet.</div>'; return; }
-  g.innerHTML = `<div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>LTP</th><th>Vol (day)</th><th>Avg/day 1M</th><th>Avg/day 1Y</th><th>Avg / month</th><th>Avg / year</th><th>Day H / L</th><th>Month H / L</th><th>52W H / L</th><th>All-time H / L</th></tr></thead><tbody>
+  g.innerHTML = `<div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>CMP</th><th>Mkt cap</th><th>Vol (day)</th><th>Avg/day 1M</th><th>Avg/day 1Y</th><th>Avg / month</th><th>Avg / year</th><th>Day H / L</th><th>Month H / L</th><th>52W H / L</th><th>All-time H / L</th></tr></thead><tbody>
   ${list.map(it=>{ const s=it.stock, v=s.volume, h=s.hl; const hl=x=>x?`${inr(x.high)} / ${inr(x.low)}`:'—';
-    return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${esc(s.symbol)} · ${it.status}</div></td><td>${inr(s.ltp)}</td><td>${compact(v.lastDay)}</td><td>${compact(v.avg1M)}</td><td>${compact(v.avg1Y)}</td><td>${compact(v.avgMonthly12M)}</td><td>${compact(v.avgYearly)}</td><td>${hl(h.day)}</td><td>${hl(h.month)}</td><td>${hl(h.w52)}</td><td>${hl(h.all)}</td></tr>`;}).join('')}
+    return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${esc(s.symbol)} · ${it.status}</div></td><td>${inr(cmpOf(it))}</td><td>${mcapTxt(it.mcapCr)}</td><td>${compact(v.lastDay)}</td><td>${compact(v.avg1M)}</td><td>${compact(v.avg1Y)}</td><td>${compact(v.avgMonthly12M)}</td><td>${compact(v.avgYearly)}</td><td>${hl(h.day)}</td><td>${hl(h.month)}</td><td>${hl(h.w52)}</td><td>${hl(h.all)}</td></tr>`;}).join('')}
   </tbody></table></div>`;
 }
 
@@ -695,7 +709,8 @@ function openDetail(id){
           ${kv('Issue size (shares)', nf(d.issueShares))}
           ${kv('Listing at', esc(d.listingAt||'—'))}
           ${kv('Terms of payment', esc(d.terms||'—'))}
-          ${kv('CMP (share)', inr(m.C))}
+          ${kv('CMP (share)', inr(m.C)+(it.priceCheck?`<small> ${esc(it.priceCheck.used.src)}${it.priceCheck.used.asOf?', '+fd(it.priceCheck.used.asOf):''}</small>`:''))}
+          ${kv('Market cap', mcapTxt(it.mcapCr))}
           ${kv('RE price (market)', inr(m.reMkt))}
           ${kv('Discount to CMP', m.disc!=null?`<span class="${m.disc>=0?'pos':'neg'}">${m.disc.toFixed(1)}%</span>`:'—')}
           ${kv('TERP', inr(m.terp))}
@@ -706,6 +721,11 @@ function openDetail(id){
         ${d.entitlement?`<div class="small">Entitlement: ${esc(d.entitlement)}</div>`:''}
       </div>
 
+      ${it.priceCheck?`<div class="sect"><h3>Price check <span class="rt">${(it.priceCheck.mismatch||[]).length?'<span class="neg">⚠ sources disagree</span>':'<span class="pos">✓ sources agree (±10%)</span>'}</span></h3>
+        <div class="tw"><table class="ft"><thead><tr><th>Source</th><th>Price</th><th>As of</th><th>vs used</th></tr></thead><tbody>
+        ${it.priceCheck.sources.map(s=>{const u=s===it.priceCheck.used||(s.src===it.priceCheck.used.src&&s.price===it.priceCheck.used.price);const bad=(it.priceCheck.mismatch||[]).some(x=>x.src===s.src);return `<tr class="${u?'hl':''}"><td>${esc(s.src)}${u?' (used)':''}${s.via?' · '+esc(s.via):''}${s.range?`<small> day range ${inr(s.range[0])}–${inr(s.range[1])}</small>`:''}${s.note?`<small> (${esc(s.note)})</small>`:''}</td><td>${inr(s.price)}</td><td>${s.asOf?fdt(s.asOf):'—'}</td><td class="${bad?'neg':''}">${u?'—':pct((s.price/it.priceCheck.used.price-1)*100)}${bad?' ⚠':''}</td></tr>`;}).join('')}
+        </tbody></table></div>
+        <div class="small">CMP = live exchange price when it lies inside today's traded range, otherwise the latest daily close. Other sources are cross-checks and are flagged when they differ by more than 10%. Market cap = ${esc(it.mcapBasis||'—')}.${it.priceCheck.reRejected!=null?` An RE quote of ${inr(it.priceCheck.reRejected)} was ignored because an RE can't be worth more than the share itself.`:''}</div></div>`:''}
       <div class="sect"><h3>Analysis</h3><ul class="reasons">${reasons.map(r=>`<li class="${r[0]}">${r[1]}</li>`).join('')||'<li class="n">Waiting for price data.</li>'}</ul></div>
 
       <div class="sect"><h3>Timetable</h3><div class="tw"><table class="ft"><thead><tr><th>Event</th><th>Date</th><th>Days</th></tr></thead><tbody>
@@ -843,7 +863,7 @@ function creditHtml(it){
   const rt = c.rating, f = c.fin||{};
   const kv = (k,v)=>`<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const TL = {default:['Debt servicing','cr-bad'], insolvency:['Insolvency','cr-bad'], ots:['Settlement','cr-bad'], npa:['NPA/SMA','cr-sub']};
-  const issueVsMcap = it.sizeCr && c.marketCapCr ? it.sizeCr/c.marketCapCr*100 : null;
+  const issueVsMcap = it.sizeCr && it.mcapCr ? it.sizeCr/it.mcapCr*100 : null;
   return `<div class="sect"><h3>Credit rating &amp; default check <span class="rt">${creditPills(it)}</span></h3>
     <div class="kgrid">
       ${kv('Current rating', rt&&rt.grade?`${esc(rt.agency||'')} ${esc(rt.grade)}`:esc(ca.badge))}
@@ -857,7 +877,7 @@ function creditHtml(it){
       ${kv('Debt / equity', f.debtEquity!=null?f.debtEquity+'×':'—')}
       ${kv('Interest cover', f.icr!=null?`<span class="${f.icr<1.5?'neg':f.icr>=3?'pos':''}">${f.icr}×</span>`:f.financialCo?'n/a (lender)':'—')}
       ${kv('Promoter pledge', c.pledgePct!=null?c.pledgePct+'%':'None reported')}
-      ${kv('Market cap', c.marketCapCr!=null?'₹'+nf(c.marketCapCr)+' Cr':'—')}
+      ${kv('Market cap', mcapTxt(it.mcapCr))}
       ${kv('Issue size vs market cap', issueVsMcap!=null?issueVsMcap.toFixed(0)+'%':'—')}
     </div>
     <ul class="reasons" style="margin-top:10px">${ca.notes.map(n=>`<li class="${/default|Negative|negative|pledged|INC|Not Cooperating|insolvency|settlement|debt\/equity|Weak/i.test(n)?'b':'n'}">${n}</li>`).join('')}</ul>
