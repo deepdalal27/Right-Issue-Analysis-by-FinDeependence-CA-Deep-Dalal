@@ -1018,7 +1018,9 @@ function calcDefaults(it){
   const listing = (it.detail&&it.detail.dates&&it.detail.dates.listing) || (it.close ? new Date(Date.parse(it.close)+14*86400000).toISOString().slice(0,10) : null);
   const days = Math.max(7, daysTo(listing) || 21);
   const terms = it.detail && it.detail.terms;
-  return { amt: 0, held: 0, cmp: m.C, price: it.price, rr: R.r, rh: R.h, re: re, exit: +(+exit||0).toFixed(2),
+  // REs can be bought on the exchange only between the issue opening and the renunciation date
+  const reOpen = !!(it.renunciation && todayISO <= it.renunciation && (!it.open || todayISO >= it.open));
+  return { ownRE: 0, ownRECost: 0, buyRE: reOpen, reOpen, renunciation: it.renunciation, closeDate: it.close, amt: 0, held: 0, cmp: m.C, price: it.price, rr: R.r, rh: R.h, re: re, exit: +(+exit||0).toFixed(2),
     subs, addPct: subs>=1 ? 0 : Math.round((1-subs)*50), fee: 0.15, payNow: terms && !/full/i.test(terms) ? 50 : 100,
     days, useAdd: true, reAssumed, listing, ratioKnown: !!m.R };
 }
@@ -1026,21 +1028,27 @@ function calcRun(i){
   const f = (+i.fee||0)/100, P = +i.price||0, RE = Math.max(0,+i.re||0), X = +i.exit||0, A = Math.max(0,+i.amt||0);
   const rr = +i.rr||0, rh = +i.rh||1;
   const o = {ok: P>0 && A>0};
-  o.entitled = Math.floor((+i.held||0) * rr / rh);
+  o.fromHeld = Math.floor((+i.held||0) * rr / rh);
+  o.ownRE = Math.max(0, Math.floor(+i.ownRE||0));
+  o.ownRECost = o.ownRE * (+i.ownRECost||0);               // already paid for REs you own
+  o.entitled = o.fromHeld + o.ownRE;
   o.entApply = Math.min(o.entitled, Math.floor(A / P || 0));
   o.entCost = o.entApply * P;
   let cash = A - o.entCost;
   o.unitRE = RE*(1+f) + P;
-  o.nRE = o.unitRE>0 ? Math.floor(cash / o.unitRE) : 0;
+  o.nRE = i.buyRE && o.entApply===o.entitled && o.unitRE>0 ? Math.floor(cash / o.unitRE) : 0;
   o.reCost = o.nRE * RE * (1+f); o.rePay = o.nRE * P;
   cash -= o.reCost + o.rePay;
-  o.addApplied = (i.useAdd && (o.entApply + o.nRE) > 0 && P>0) ? Math.floor(cash / P) : 0;
+  // additional shares can be applied for only after applying for the full entitlement
+  o.addApplied = (i.useAdd && o.entApply===o.entitled && (o.entApply + o.nRE) > 0 && P>0) ? Math.floor(cash / P) : 0;
+  o.renouncee = (+i.held||0)===0 && (o.ownRE + o.nRE) > 0;
   o.addAllot = Math.floor(o.addApplied * (Math.max(0, Math.min(100, +i.addPct||0)) / 100));
   o.addCost = o.addAllot * P;
   o.refund = o.addApplied*P - o.addCost;
   o.unused = cash - o.addApplied*P;
   o.shares = o.entApply + o.nRE + o.addAllot;
-  o.invested = o.entCost + o.reCost + o.rePay + o.addCost;
+  o.newMoney = o.entCost + o.reCost + o.rePay + o.addCost;      // from the amount entered
+  o.invested = o.newMoney + o.ownRECost;                           // total cost incl. REs already bought
   o.payNow = o.entCost*(+i.payNow/100) + o.reCost + o.rePay*(+i.payNow/100) + o.addCost*(+i.payNow/100);
   o.payLater = o.invested - o.payNow;
   o.valueGross = o.shares * X; o.sellCost = o.valueGross * f; o.valueNet = o.valueGross - o.sellCost;
@@ -1049,9 +1057,11 @@ function calcRun(i){
   o.annual = o.invested && i.days>0 && o.ret>-100 ? (Math.pow(1+o.ret/100, 365/i.days)-1)*100 : null;
   o.avgCost = o.shares ? o.invested / o.shares : 0;
   o.breakeven = o.shares ? o.invested / (o.shares*(1-f)) : 0;
-  o.mktCost = o.shares * (+i.cmp||0) * (1+f);           // buying the same shares in the market today
+  o.mktCost = o.shares * (+i.cmp||0) * (1+f);
+  o.blocked = o.entCost + o.rePay + o.addApplied*P;               // ASBA amount blocked on application
+  o.released = o.refund + o.unused;           // buying the same shares in the market today
   o.saving = o.mktCost - o.invested;
-  o.sellReAlt = o.entitled * RE * (1-f);                  // holder: sell REs instead of applying
+  o.sellReAlt = i.reOpen ? o.entitled * RE * (1-f) : 0;                  // holder: sell REs instead of applying
   o.scen = [-20,-10,0,10,20].map(p=>{ const px = X*(1+p/100), v = o.shares*px*(1-f); return {p, px, value:v, profit:v-o.invested, ret:o.invested?(v-o.invested)/o.invested*100:0}; });
   o.scenIssue = (()=>{ const v=o.shares*P*(1-f); return {px:P, value:v, profit:v-o.invested}; })();
   return o;
@@ -1059,22 +1069,28 @@ function calcRun(i){
 function calcSteps(it, i, o){
   const S = [];
   const inr0 = v=>inr(v,0);
+  if(i.closeDate===todayISO) S.push(['⏰ Today is the last day to apply', `The issue closes today. Banks stop accepting ASBA / net-banking rights applications at their own cut-off time (often earlier than the exchange's 5 pm), so apply as early as possible.`, null]);
+  if(!i.reOpen && i.renunciation && todayISO > i.renunciation) S.push(['RE trading has ended', `REs could be bought or sold on the exchange only until <b>${fd(i.renunciation)}</b>. You can no longer buy more REs, so new money can only go into <b>additional shares</b>.`, null]);
+  if(o.ownRE>0) S.push(['REs you already own', `You own <b>${nf(o.ownRE)} REs</b>${+i.ownRECost?` bought at <b>${inr(i.ownRECost)}</b> each (${inr(o.ownRECost,0)} already spent)`:''}. Each lets you buy 1 share at ${inr(i.price)}, so your all-in cost for these is <b>${inr((+i.ownRECost||0)+(+i.price))}</b> per share.`, o.ownRECost||null]);
   if(+i.held>0) S.push(['You already hold shares', `You held <b>${nf(i.held)}</b> shares on the record date. The ratio is <b>${i.rr}:${i.rh}</b> (${i.rr} new share${i.rr>1?'s':''} for every ${i.rh} held), so you received <b>${nf(o.entitled)} REs</b> = ${nf(i.held)} × ${i.rr} ÷ ${i.rh}, rounded down.`, null]);
   if(o.entApply>0) S.push(['Apply for your entitlement', `Pay the issue price <b>${inr(i.price)}</b> for each of your ${nf(o.entApply)} REs.`, o.entCost]);
   if(o.nRE>0) S.push(['Buy REs in the market', `${o.entApply>0?'With the money left':'You don\'t hold the shares, so'} buy <b>${nf(o.nRE)} REs</b> on the exchange at <b>${inr(i.re)}</b> each (+${i.fee}% charges)${i.reAssumed?' (no live RE quote yet: price assumed at 85% of fair value, edit it)':''}.`, o.reCost]);
   if(o.nRE>0) S.push(['Apply using those REs', `Each RE lets you buy one new share at <b>${inr(i.price)}</b>. Your all-in cost per share = RE ${inr(i.re)} + issue ${inr(i.price)}${+i.fee?` + charges`:''} = <b>${inr(o.unitRE)}</b>.`, o.rePay]);
-  if(o.addApplied>0) S.push(['Apply for additional shares', `Leftover money lets you apply for <b>${nf(o.addApplied)}</b> extra shares. These are allotted only from the part of the issue others don't take up. At <b>${i.subs}×</b> subscription you assumed <b>${i.addPct}%</b> gets allotted → <b>${nf(o.addAllot)}</b> shares. The rest, <b>${inr0(o.refund)}</b>, is refunded (it's only blocked in your bank account).`, o.addCost]);
-  if(o.unused>=1) S.push(['Money not used', `${inr0(o.unused)} stays with you (not enough for one more share${+i.held||o.nRE?'':' or no RE'}).`, null]);
+  if(o.addApplied>0) S.push(['Apply for additional shares', `Leftover money lets you apply for <b>${nf(o.addApplied)}</b> extra shares (${nf(o.addApplied)} × ${inr(i.price)} = ${inr0(o.addApplied*i.price)} blocked in your bank). These come only from the part of the issue others don't take up. At <b>${i.subs}×</b> subscription you assumed <b>${i.addPct}%</b> gets allotted → <b>${nf(o.addAllot)}</b> shares. The rest, <b>${inr0(o.refund)}</b>, is unblocked after allotment.${i.subs>=1?' Because the issue is already more than fully subscribed, expect little or nothing here.':''}${o.renouncee?' <b>Note:</b> you hold REs but not the shares (a "renouncee"). In the usual basis of allotment, additional shares go first to original shareholders, and renouncees get them only if anything is left.':''}`, o.addCost]);
+  if(o.unused>=1) S.push(['Money not used', `${inr0(o.unused)} stays with you (less than the price of one share).`, null]);
+  if(o.blocked>0 && o.released>=1) S.push(['Money blocked vs actually used', `On applying, <b>${inr0(o.blocked)}</b> is blocked in your bank account (ASBA). After allotment only <b>${inr0(o.newMoney)}</b> is debited and <b>${inr0(o.released)}</b> is released back to you.`, null]);
   S.push(['Shares you receive', `<b>${nf(o.shares)} shares</b> credited to your demat around <b>${fd(i.listing)}</b> (about ${i.days} days from now). Average cost <b>${inr(o.avgCost)}</b> per share.`, o.invested]);
   S.push(['Sell at the expected price', `If the share trades at <b>${inr(i.exit)}</b> when you sell: ${nf(o.shares)} × ${inr(i.exit)} = ${inr0(o.valueGross)}, minus ${i.fee}% charges = <b>${inr0(o.valueNet)}</b>.`, o.valueNet]);
-  S.push([o.profit>=0?'Your expected profit':'Your expected loss', `${inr0(o.valueNet)} − ${inr0(o.invested)} invested = <b class="${o.profit>=0?'pos':'neg'}">${inr0(o.profit)}</b> (${pct(o.ret,1)} in ~${i.days} days${o.annual!=null&&Math.abs(o.annual)<1e4?`, ≈${pct(o.annual,0)} a year`:''}).`, o.profit]);
+  S.push([o.profit>=0?'Your expected profit':'Your expected loss', `${inr0(o.valueNet)} − ${inr0(o.invested)} invested = <b class="${o.profit>=0?'pos':'neg'}">${inr0(o.profit)}</b> (${pct(o.ret,1)} in ~${i.days} days${o.annual!=null&&i.days>=60&&Math.abs(o.annual)<1e4?`, ≈${pct(o.annual,0)} a year`:''}).`, o.profit]);
   S.push(['Break-even price', `You lose money only if the share falls below <b>${inr(o.breakeven)}</b> by the time you sell. That is ${i.exit?pct((o.breakeven/i.exit-1)*100,1):'—'} from the expected price.`, null]);
   if(o.shares && +i.cmp) S.push(['Versus buying in the market', `Buying the same ${nf(o.shares)} shares today at ${inr(i.cmp)} would cost ${inr0(o.mktCost)}. The rights route ${o.saving>=0?'saves':'costs'} <b class="${o.saving>=0?'pos':'neg'}">${inr0(Math.abs(o.saving))}</b> ${o.saving>=0?'':'more'}.`, o.saving]);
-  if(o.entitled>0) S.push(['Alternative: sell your REs', `Instead of applying, selling your ${nf(o.entitled)} REs at ${inr(i.re)} would bring about <b>${inr0(o.sellReAlt)}</b> now, with no further price risk.`, o.sellReAlt]);
+  if(o.entitled>0 && i.reOpen) S.push(['Alternative: sell your REs', `Instead of applying, selling your ${nf(o.entitled)} REs at ${inr(i.re)} would bring about <b>${inr0(o.sellReAlt)}</b> now, with no further price risk.`, o.sellReAlt]);
   return S;
 }
 const CALC_FIELDS = [
-  ['held','Shares you already hold (on record date)','0 if you hold none: you can still buy REs'],
+  ['ownRE','REs you already own','bought in the market (or received)'],
+  ['ownRECost','Price you paid per RE (₹)','0 if received as a shareholder'],
+  ['held','Shares you held on record date','only if REs not entered above'],
   ['cmp','Current market price (₹)','live / last close'],
   ['price','Issue price (₹)','from the offer'],
   ['rr','Ratio: new shares','rights side of ratio'],
@@ -1099,6 +1115,7 @@ function calcSection(it){
     </div>
     <details class="adv" open><summary>Assumptions (pre-filled from live data, tap to edit)</summary>
       <div class="cgrid">${CALC_FIELDS.map(([k,l,h])=>`<label class="cf"><span>${l}</span><input data-k="${k}" type="number" step="any" value="${d[k]??''}"><small>${h}${k==='re'&&d.reAssumed?' · no live quote: assumed':''}</small></label>`).join('')}
+        <label class="cf chk"><input data-k="buyRE" type="checkbox" ${d.buyRE?'checked':''} ${d.reOpen?'':'disabled'}><span>Buy more REs in the market with the money${d.reOpen?'':` (RE trading ended ${fd(d.renunciation)})`}</span></label>
         <label class="cf chk"><input data-k="useAdd" type="checkbox" checked><span>Apply for additional shares with leftover cash</span></label>
       </div>
       <button type="button" class="reset" id="ic-reset">↺ Reset to live values</button>
@@ -1117,13 +1134,13 @@ function calcRender(it){
   $('#ic-out').innerHTML = `
     <div class="kpis">
       <div class="kp"><div class="k">Shares you get</div><div class="v">${nf(o.shares)}</div><div class="s">avg cost ${inr(o.avgCost)}</div></div>
-      <div class="kp"><div class="k">Money invested</div><div class="v">${inr(o.invested,0)}</div><div class="s">${o.refund>=1?'refund '+inr(o.refund,0):o.unused>=1?'unused '+inr(o.unused,0):'fully used'}</div></div>
+      <div class="kp"><div class="k">Money actually used</div><div class="v">${inr(o.newMoney,0)}</div><div class="s">${o.released>=1?'released back '+inr(o.released,0):'fully used'}${o.ownRECost?' · + '+inr(o.ownRECost,0)+' REs':''}</div></div>
       <div class="kp ${o.profit>=0?'good':'bad'}"><div class="k">Expected ${o.profit>=0?'profit':'loss'}</div><div class="v">${inr(o.profit,0)}</div><div class="s">${pct(o.ret,1)} in ~${i.days} days</div></div>
       <div class="kp"><div class="k">Break-even price</div><div class="v">${inr(o.breakeven)}</div><div class="s">${pct((o.breakeven/i.exit-1)*100,1)} from exit price</div></div>
     </div>
     <h4 class="h4">Allotment breakdown</h4>
     <div class="tw"><table class="ft"><thead><tr><th>Route</th><th>Shares</th><th>Cost / share</th><th>Amount</th></tr></thead><tbody>
-      ${o.entApply?`<tr><td>Your entitlement (REs you received)</td><td>${nf(o.entApply)}</td><td>${inr(i.price)}</td><td>${inr(o.entCost,0)}</td></tr>`:''}
+      ${o.entApply?`<tr><td>Your REs (${o.ownRE?nf(o.ownRE)+' owned':''}${o.ownRE&&o.fromHeld?' + ':''}${o.fromHeld?nf(o.fromHeld)+' from holding':''})</td><td>${nf(o.entApply)}</td><td>${inr(i.price)}</td><td>${inr(o.entCost,0)}</td></tr>`:''}
       ${o.nRE?`<tr><td>REs bought in market + applied</td><td>${nf(o.nRE)}</td><td>${inr(o.unitRE)}</td><td>${inr(o.reCost+o.rePay,0)}</td></tr>`:''}
       ${o.addApplied?`<tr><td>Additional shares (${nf(o.addApplied)} applied × ${i.addPct}%)</td><td>${nf(o.addAllot)}</td><td>${inr(i.price)}</td><td>${inr(o.addCost,0)}</td></tr>`:''}
       <tr class="hl"><td><b>Total</b></td><td><b>${nf(o.shares)}</b></td><td><b>${inr(o.avgCost)}</b></td><td><b>${inr(o.invested,0)}</b></td></tr>
@@ -1198,7 +1215,9 @@ async function calcPdf(it){
     H('2. Your inputs and assumptions');
     T(['Input','Value','Basis'], [
       ['Amount you can invest', rs(i.amt,0), 'entered by you'],
-      ['Shares already held (record date)', nf(i.held), +i.held?'entered by you':'none: buying REs in the market'],
+      ['REs you already own', nf(i.ownRE), +i.ownRECost?'bought at '+rs(+i.ownRECost)+' each':'entered by you'],
+      ['Shares held on record date', nf(i.held), +i.held?'entered by you':'none'],
+      ['Buy more REs in the market', i.buyRE?'Yes':'No', i.reOpen?'RE trading open till '+(i.renunciation||'-'):'RE trading ended '+(i.renunciation||'')],
       ['Current market price (CMP)', rs(i.cmp), plain(it.priceCheck?it.priceCheck.used.src+(it.priceCheck.used.asOf?' '+it.priceCheck.used.asOf.slice(0,10):''):'market data')],
       ['Issue price', rs(i.price), 'Letter of Offer'],
       ['Rights ratio (new : held)', `${i.rr} : ${i.rh}`, 'Letter of Offer'],
@@ -1212,11 +1231,13 @@ async function calcPdf(it){
     ], {columnStyles:{1:{halign:'right', fontStyle:'bold'}}});
     H('3. Allotment breakdown');
     const ab = [];
-    if(o.entApply) ab.push(['Your entitlement (REs you received)', nf(o.entApply), rs(i.price), rs(o.entCost,0)]);
+    if(o.entApply) ab.push([o.ownRE?`Your REs (${nf(o.ownRE)} owned${o.fromHeld?' + '+nf(o.fromHeld)+' from holding':''})`:'Your entitlement (REs you received)', nf(o.entApply), rs(i.price), rs(o.entCost,0)]);
+    if(o.ownRECost) ab.push(['Already paid for your REs','', rs(+i.ownRECost), rs(o.ownRECost,0)]);
     if(o.nRE) ab.push(['REs bought in market + applied', nf(o.nRE), rs(o.unitRE), rs(o.reCost+o.rePay,0)]);
     if(o.addApplied) ab.push([`Additional (${nf(o.addApplied)} applied x ${i.addPct}%)`, nf(o.addAllot), rs(i.price), rs(o.addCost,0)]);
     ab.push(['TOTAL', nf(o.shares), rs(o.avgCost), rs(o.invested,0)]);
-    if(o.refund>=1) ab.push(['Refund (additional not allotted)','','', rs(o.refund,0)]);
+    if(o.blocked>0) ab.push(['Blocked in bank on application (ASBA)','','', rs(o.blocked,0)]);
+    if(o.refund>=1) ab.push(['Released after allotment (additional not allotted)','','', rs(o.refund,0)]);
     if(o.unused>=1) ab.push(['Not used','','', rs(o.unused,0)]);
     if(o.payLater>=1) ab.push(['Payable now / later (calls)','','', rs(o.payNow,0)+' / '+rs(o.payLater,0)]);
     T(['Route','Shares','Cost / share','Amount'], ab, {columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right',fontStyle:'bold'}},
