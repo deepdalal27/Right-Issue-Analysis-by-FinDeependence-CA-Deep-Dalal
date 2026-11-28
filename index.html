@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FinDeependence — Live Rights Issue Tracker</title>
+<meta name="description" content="Live tracker for open & upcoming rights issues in India: dates, entitlement ratio, issue price, date-wise subscription, trading volume averages and highs/lows. Created by CA Deep Dalal.">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#1fa463; --green-dark:#157a49; --teal:#35c4d7; --teal-soft:#e4f7fa;
+  --ink:#1f2430; --muted:#6b7280; --bg:#f4f8f6; --card:#ffffff; --line:#e5eae8;
+  --amber:#d97706; --red:#dc2626; --blue:#2563eb; --violet:#6d28d9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+a{color:var(--green-dark);text-decoration:none}
+header{background:var(--ink);color:#fff;padding:12px 20px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.hwrap{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.hwrap img{width:50px;height:50px;border-radius:50%;background:#fff}
+.brand h1{font-size:1.12rem;font-weight:800}
+.brand h1 span{color:var(--teal)}
+.brand p{font-size:.68rem;letter-spacing:2.5px;color:#cbd5d1;text-transform:uppercase;margin-top:2px}
+.creator{margin-left:auto;text-align:right}
+.creator .by{font-size:.66rem;color:#9aa5a0;text-transform:uppercase;letter-spacing:1.5px}
+.creator .nm{font-size:.9rem;font-weight:700;color:#fff}
+.creator .nm b{color:var(--teal)}
+.toolbar{max-width:1180px;margin:16px auto 0;padding:0 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tab{border:none;background:transparent;padding:8px 14px;border-radius:9px;font-family:inherit;font-size:.83rem;font-weight:600;color:var(--muted);cursor:pointer}
+.tab.active{background:var(--green);color:#fff}
+.tab .cnt{font-size:.68rem;opacity:.8;margin-left:3px}
+#search{flex:1;min-width:150px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;font-family:inherit;font-size:.85rem;background:#fff;outline:none}
+#search:focus{border-color:var(--teal)}
+#refreshBtn{border:1px solid #c9edf3;background:var(--teal-soft);color:#0e7490;padding:10px 14px;border-radius:12px;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer}
+#stamp{font-size:.7rem;color:var(--muted)}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+main{max-width:1180px;margin:14px auto 40px;padding:0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+@media(max-width:400px){.grid{grid-template-columns:1fr}}
+.note{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px;text-align:center;color:var(--muted);font-size:.9rem;grid-column:1/-1}
+.err{grid-column:1/-1;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:16px;font-size:.85rem;text-align:center}
+.loading{display:flex;justify-content:center;padding:60px;grid-column:1/-1}
+.spin{width:38px;height:38px;border:4px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* Card */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:11px;box-shadow:0 1px 4px rgba(31,36,48,.05);min-width:0}
+.card-top{display:flex;align-items:flex-start;gap:10px}
+.clogo{width:40px;height:40px;border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--line);flex-shrink:0}
+.card h3{font-size:.98rem;font-weight:700;line-height:1.25}
+.card .sym{font-size:.68rem;color:var(--muted);margin-top:2px}
+.badges{margin-left:auto;display:flex;gap:5px;flex-shrink:0;flex-direction:column;align-items:flex-end}
+.pill{font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.p-open{background:#dcfce7;color:#15803d}.p-up{background:#e0f2fe;color:#0369a1}
+.p-close{background:#f3f4f6;color:#4b5563}.p-ren{background:#fef3c7;color:#92400e}
+.p-x{background:#eef2ff;color:#4338ca}
+.facts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.fact{background:var(--bg);border-radius:10px;padding:7px 9px;min-width:0}
+.fact .k{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.fact .v{font-size:.83rem;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+.fact .v small{font-weight:500;color:var(--muted);font-size:.68rem}
+.pos{color:var(--green-dark)}.neg{color:var(--red)}
+.dates{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);background:var(--teal-soft);border-radius:10px;padding:7px 11px;flex-wrap:wrap;gap:6px}
+.dates b{display:block;color:var(--ink);font-size:.76rem}
+.subs h4{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between}
+.subs h4 .tot{color:var(--ink);font-weight:800;font-size:.78rem;text-transform:none;letter-spacing:0}
+.bar{height:7px;background:#edf1ef;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--green))}
+.bar i.under{background:#fca5a5}
+.subs .meta{font-size:.64rem;color:var(--muted);margin-top:4px}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mini .fact{padding:6px 7px}
+.mini .fact .v{font-size:.74rem}
+/* Verdict strip */
+.verdict{display:flex;align-items:center;gap:10px;border-radius:12px;padding:9px 12px}
+.v-hi{background:linear-gradient(135deg,#ecfdf3,#e4f7fa);border:1px solid #bbf7d0}
+.v-mid{background:#fffbeb;border:1px solid #fde68a}
+.v-lo{background:#fef2f2;border:1px solid #fecaca}
+.v-na{background:var(--bg);border:1px solid var(--line)}
+.vscore{font-size:1.05rem;font-weight:800;min-width:62px;text-align:center;border-radius:10px;padding:4px 6px;background:#fff}
+.v-hi .vscore{color:var(--green-dark)}.v-mid .vscore{color:var(--amber)}.v-lo .vscore{color:var(--red)}.v-na .vscore{color:var(--muted)}
+.vtxt .vt{font-size:.78rem;font-weight:800}
+.vtxt .vs{font-size:.66rem;color:var(--muted)}
+.card-actions{display:flex;gap:8px;margin-top:auto}
+.btn{flex:1;border:none;border-radius:10px;padding:9px 8px;font-family:inherit;font-size:.76rem;font-weight:700;cursor:pointer;text-align:center}
+.btn-detail{background:var(--ink);color:#fff}
+.btn-alt{background:#ede9fe;color:var(--violet)}
+/* Detail overlay */
+.dov{position:fixed;inset:0;background:rgba(15,20,25,.6);display:none;z-index:100;overflow-y:auto;padding:18px 12px}
+.dov.show{display:block}
+.dpanel{background:var(--bg);border-radius:18px;max-width:920px;margin:0 auto;overflow:hidden}
+.dhead{background:var(--ink);color:#fff;padding:16px 20px;display:flex;gap:14px;align-items:center;position:sticky;top:0;z-index:5}
+.dhead img.cl{width:52px;height:52px;border-radius:10px;background:#fff;object-fit:contain;flex-shrink:0}
+.dhead h2{font-size:1.1rem}
+.dhead .sub{font-size:.72rem;color:#cbd5d1;margin-top:2px}
+.dclose{margin-left:auto;border:none;background:rgba(255,255,255,.12);color:#fff;width:34px;height:34px;border-radius:9px;font-size:1.05rem;cursor:pointer;flex-shrink:0}
+.dbody{padding:16px 20px 26px;display:flex;flex-direction:column;gap:14px}
+@media(max-width:640px){.dbody{padding:12px 12px 22px}.dhead{padding:12px 14px}}
+.sect{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.sect>h3{font-size:.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sect>h3 .rt{font-size:.68rem;text-transform:none;letter-spacing:0;font-weight:600}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.kgrid .fact .v{font-size:.88rem}
+.tw{overflow-x:auto}
+table.ft{width:100%;border-collapse:collapse;font-size:.78rem}
+table.ft th{background:var(--bg);text-align:left;padding:7px 9px;font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap}
+table.ft td{padding:7px 9px;border-top:1px solid var(--line);white-space:nowrap}
+table.ft td:not(:first-child),table.ft th:not(:first-child){text-align:right}
+table.ft tr.hl td{background:#eafaf1}
+.seg{display:inline-flex;gap:4px;background:var(--bg);border-radius:9px;padding:3px}
+.seg button{border:none;background:transparent;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:.7rem;font-weight:700;color:var(--muted);cursor:pointer}
+.seg button.active{background:var(--ink);color:#fff}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:Inter,sans-serif;font-size:10px;fill:var(--muted)}
+.ctip{font-size:.72rem;color:var(--muted);margin-top:6px;min-height:18px}
+.reasons{list-style:none;display:flex;flex-direction:column;gap:5px}
+.reasons li{font-size:.78rem;padding-left:20px;position:relative;line-height:1.45}
+.reasons li.g::before{content:"▲";color:var(--green-dark);position:absolute;left:0;font-size:.7rem}
+.reasons li.b::before{content:"▼";color:var(--red);position:absolute;left:0;font-size:.7rem}
+.reasons li.n::before{content:"•";color:var(--muted);position:absolute;left:0}
+.calcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.calcgrid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}.mini{grid-template-columns:1fr 1fr}.creator{display:none}.hwrap img{width:38px;height:38px}.brand p{display:none}header{padding:10px 16px}.toolbar,main{padding:0 16px}}
+.calc label{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:block;margin:9px 0 4px}
+.calc input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:.88rem;background:#fff}
+.cres{background:var(--teal-soft);border-radius:12px;padding:12px;margin-top:10px}
+.cres .pct{font-size:1.3rem;font-weight:800;color:#0e7490}
+.cres .expl{font-size:.76rem;margin-top:5px;line-height:1.6}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{font-size:.76rem;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+.small{font-size:.68rem;color:var(--muted);margin-top:8px;line-height:1.5}
+/* Calendar */
+.calwrap{grid-column:1/-1;display:flex;flex-direction:column;gap:10px}
+.cday{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start}
+.cday.today{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft)}
+.cday .dt{min-width:64px;text-align:center;background:var(--bg);border-radius:9px;padding:6px 4px}
+.cday .dt .dd{font-size:1.1rem;font-weight:800}
+.cday .dt .dm{font-size:.62rem;color:var(--muted);text-transform:uppercase}
+.cday .evl{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cday .ev{font-size:.76rem;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.tagx{font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:99px;text-transform:uppercase;white-space:nowrap}
+.tg-rec{background:#e0f2fe;color:#0369a1}.tg-open{background:#dcfce7;color:#15803d}.tg-close{background:#fee2e2;color:#b91c1c}
+.tg-ren{background:#fef3c7;color:#92400e}.tg-allot{background:#ede9fe;color:#6d28d9}.tg-buy{background:#f3f4f6;color:#374151}
+.cday .ev b{cursor:pointer}
+/* Wide table views */
+.widewrap{grid-column:1/-1;background:#fff;border:1px solid var(--line);border-radius:14px;overflow-x:auto}
+.widewrap table.ft td:first-child{white-space:normal;min-width:170px}
+.widewrap table.ft td b{cursor:pointer}
+.cr-ig{background:#dcfce7;color:#15803d}.cr-sub{background:#fef3c7;color:#92400e}.cr-bad{background:#fee2e2;color:#b91c1c}.cr-na{background:#f3f4f6;color:#4b5563}
+/* ticker chips, hero prices, key row */
+.tickers{display:flex;gap:6px;flex-wrap:wrap}
+.tk{font-size:.74rem;font-weight:800;color:#111827;background:#eef2f7;border:1px solid #d5dde8;border-radius:8px;padding:3px 8px;letter-spacing:.2px}
+.tk span{font-weight:600;color:#4b5563;margin-right:3px}
+.tk.re{background:#fff7ed;border-color:#fed7aa}
+.hero{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hp{border-radius:12px;padding:9px 10px;border:1px solid var(--line);min-width:0}
+.hp .k{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#374151}
+.hp .v{font-size:1.22rem;font-weight:800;color:#0b0f19;margin-top:2px;line-height:1.15;overflow-wrap:anywhere}
+.hp .s{font-size:.68rem;font-weight:700;margin-top:2px;color:#374151}
+.hp.cmp{background:#ecfeff;border-color:#a5f3fc}.hp.iss{background:#f5f3ff;border-color:#ddd6fe}.hp.re{background:#fff7ed;border-color:#fed7aa}
+.keyrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#0f172a;border-radius:12px;padding:9px 10px}
+.keyrow .k{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8}
+.keyrow .v{font-size:.98rem;font-weight:800;color:#fff;margin-top:2px}
+.keyrow .v small{font-size:.62rem;font-weight:600;color:#cbd5e1}
+@media(max-width:400px){.hp .v{font-size:1.05rem}.keyrow .v{font-size:.88rem}}
+/* eye-catching scorecard */
+table.sc{border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;border:1px solid #1f2937}
+table.sc th{background:#0f172a;color:#fff;font-size:.68rem;letter-spacing:.6px}
+table.sc td{color:#0b0f19;font-weight:600;font-size:.8rem;background:#fff}
+table.sc tr:nth-child(even) td{background:#f8fafc}
+table.sc td.wrap{color:#1f2937;font-weight:500}
+table.sc .ptsv{display:inline-block;min-width:54px;text-align:center;font-weight:800;border-radius:8px;padding:3px 7px;font-size:.78rem}
+.pt-hi{background:#dcfce7;color:#14532d}.pt-mid{background:#fef3c7;color:#78350f}.pt-lo{background:#fee2e2;color:#7f1d1d}
+table.sc .pbar2{height:6px;border-radius:99px;background:#e5e7eb;margin-top:5px;overflow:hidden}
+table.sc .pbar2 i{display:block;height:100%;border-radius:99px}
+table.sc tr.tot td{background:#0f172a;color:#fff;font-size:.92rem;font-weight:800}
+table.sc tr.tot td.wrap{color:#e2e8f0}
+.sc-head{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;border-radius:12px;padding:12px 14px;margin:14px 0 8px}
+.sc-head .big{font-size:1.9rem;font-weight:800;line-height:1}
+.sc-head .big small{font-size:.8rem;color:#94a3b8}
+.sc-head .lbl{font-size:.95rem;font-weight:800}
+.sc-head .lbl div{font-size:.7rem;color:#cbd5e1;font-weight:600;margin-top:2px}
+/* shareholding */
+.shpbar{display:flex;height:16px;border-radius:99px;overflow:hidden;margin:6px 0 10px}
+.shpbar i{display:block;height:100%}
+.shplg{display:flex;gap:10px;flex-wrap:wrap;font-size:.72rem;font-weight:700;color:#1f2937}
+.shplg b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+/* investment calculator */
+.calc2 .amtrow{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:12px;padding:12px 14px;color:#fff}
+.calc2 .amtrow label{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#cbd5e1;display:block;margin-bottom:6px}
+.calc2 #ic-amt{width:100%;font:800 1.35rem Inter,system-ui,sans-serif;padding:10px 12px;border-radius:10px;border:2px solid var(--teal);background:#fff;color:#0b0f19}
+.calc2 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.calc2 .chips button{border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:99px;padding:5px 11px;font:700 .76rem Inter,sans-serif;cursor:pointer}
+.calc2 .chips button:hover{background:var(--green);border-color:var(--green)}
+.calc2 .amtwords{font-size:.74rem;color:#5eead4;margin-top:6px;min-height:1em;font-weight:700}
+.calc2 details.adv{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.calc2 details.adv summary{cursor:pointer;font-weight:800;font-size:.8rem}
+.calc2 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px}
+.calc2 .cf{display:flex;flex-direction:column;gap:3px;font-size:.66rem;font-weight:700;color:#374151;text-transform:none;letter-spacing:0;margin:0}
+.calc2 .cf input[type=number]{padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;font:700 .9rem Inter,sans-serif;color:#0b0f19;background:#f8fafc;width:100%}
+.calc2 .cf small{font-weight:500;color:var(--muted);font-size:.62rem}
+.calc2 .cf.chk{flex-direction:row;align-items:center;gap:8px;font-size:.76rem;grid-column:1/-1}
+.calc2 .reset{margin-top:8px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px;font:700 .72rem Inter,sans-serif;cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+@media(max-width:640px){.kpis{grid-template-columns:1fr 1fr}}
+.kp{border-radius:12px;padding:10px 12px;background:#f1f5f9;border:1px solid #e2e8f0;min-width:0}
+.kp .k{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#475569}
+.kp .v{font-size:1.25rem;font-weight:800;color:#0b0f19;margin-top:3px;overflow-wrap:anywhere}
+.kp .s{font-size:.68rem;font-weight:600;color:#475569;margin-top:2px}
+.kp.good{background:#ecfdf3;border-color:#bbf7d0}.kp.good .v{color:#15803d}
+.kp.bad{background:#fef2f2;border-color:#fecaca}.kp.bad .v{color:#b91c1c}
+.h4{font-size:.8rem;margin:14px 0 6px;color:#0b0f19}
+.steps2{list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:6px}
+.steps2 li{counter-increment:st;position:relative;padding:8px 10px 8px 38px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}
+.steps2 li::before{content:counter(st);position:absolute;left:9px;top:8px;width:20px;height:20px;border-radius:50%;background:#0f172a;color:#fff;font-size:.68rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.steps2 .st{font-size:.8rem;font-weight:800;color:#0b0f19;display:flex;justify-content:space-between;gap:8px}
+.steps2 .st span{white-space:nowrap}
+.steps2 .sx{font-size:.76rem;color:#1f2937;line-height:1.55;margin-top:2px}
+.pdfrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.pdfbtn{border:none;background:var(--green);color:#fff;border-radius:10px;padding:10px 16px;font:800 .85rem Inter,sans-serif;cursor:pointer}
+.pdfbtn:hover{background:var(--green-dark)}.pdfbtn:disabled{opacity:.6;cursor:wait}
+.btn-calc{background:#ecfdf3;color:var(--green-dark)}
+.pwarn{font-size:.68rem;line-height:1.5;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:6px 9px}
+.crrow{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.ev-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.ev-list li{font-size:.74rem;line-height:1.5;background:var(--bg);border-radius:9px;padding:7px 10px}
+.ev-list li .tg{font-size:.58rem;font-weight:800;text-transform:uppercase;padding:2px 6px;border-radius:99px;margin-right:6px}
+.stars{letter-spacing:1px;font-size:.8rem;white-space:nowrap}.stars i{font-style:normal}.stars .f{color:#f59e0b}.stars .e{color:#d1d5db}
+.stars .h{background:linear-gradient(90deg,#f59e0b 50%,#d1d5db 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.vscore small{font-size:.6rem;color:var(--muted);font-weight:600}
+.dec{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.dec{grid-template-columns:1fr}}
+.dbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.dbox .who{font-size:.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+.dbox .act{font-size:1rem;font-weight:800;margin:4px 0}
+.dbox .why{font-size:.76rem;line-height:1.55}
+.dbox.pos{background:#ecfdf3;border-color:#bbf7d0}.dbox.neg{background:#fef2f2;border-color:#fecaca}
+.sbar{height:6px;background:#edf1ef;border-radius:99px;overflow:hidden;min-width:60px}
+.sbar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--green))}
+table.ft td.wrap{white-space:normal;text-align:left!important;font-size:.72rem;color:#374151;min-width:220px}
+details.learn{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+details.learn summary{cursor:pointer;font-weight:800;font-size:.85rem}
+details.learn p,details.learn li{font-size:.78rem;line-height:1.65;color:#374151;margin-top:6px}
+details.learn ul{padding-left:18px}
+.rhead{grid-column:1/-1;background:linear-gradient(135deg,#ecfdf3,#e4f7fa);border:1px solid #bbf7d0;border-radius:14px;padding:12px 16px;font-size:.78rem;line-height:1.6}
+footer{background:var(--ink);color:#aeb6b2;padding:24px 20px;font-size:.73rem;line-height:1.7}
+.fwrap{max-width:1180px;margin:0 auto;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+.fwrap img{width:42px;height:42px;border-radius:50%}
+footer b{color:#fff}
+.disc{flex:1;min-width:260px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <img src="logo.png" alt="FinDeependence logo">
+    <div class="brand">
+      <h1>Fin<span>Deependence</span> Rights Issue Tracker</h1>
+      <p>Freedom with Finance</p>
+    </div>
+    <div class="creator">
+      <div class="by">Created by</div>
+      <div class="nm"><b>CA</b> Deep Dalal</div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="open">Open<span class="cnt" id="c-open"></span></button>
+    <button class="tab" data-tab="upcoming">Upcoming<span class="cnt" id="c-upcoming"></span></button>
+    <button class="tab" data-tab="closed">Closed<span class="cnt" id="c-closed"></span></button>
+    <button class="tab" data-tab="rate">⭐ RE Ratings</button>
+    <button class="tab" data-tab="subs">📊 Subscription</button>
+    <button class="tab" data-tab="vol">📈 Volume &amp; Highs/Lows</button>
+    <button class="tab" data-tab="cal">📅 Calendar</button>
+  </div>
+  <input id="search" type="search" placeholder="Search company, BSE code, NSE symbol…">
+  <button id="refreshBtn">↻ Refresh</button>
+  <span id="stamp"></span>
+</div>
+
+<main><div class="grid" id="grid"><div class="loading"><div class="spin"></div></div></div></main>
+
+<div class="dov" id="dov"><div class="dpanel" id="dpanel"></div></div>
+
+<footer>
+  <div class="fwrap">
+    <img src="logo.png" alt="">
+    <div class="disc">
+      <b>FinDeependence</b> · Freedom with Finance · Created by <b>CA Deep Dalal</b><br>
+      Rights issue dates, price, ratio, size and subscription are aggregated from Chittorgarh public reports and detail pages; share and Rights Entitlement prices &amp; volumes from Yahoo Finance daily candles (exchange data, may be delayed). Data refreshes automatically every 15 minutes during market hours. TERP, RE fair value, discount and verdict figures are <b>indicative estimates</b> — always verify with the Letter of Offer and exchange notices.<br>
+      <b>Disclaimer:</b> Education only. Not investment advice or a recommendation. Consult a SEBI-registered adviser before investing.
+    </div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const DATA_URL = 'data/rights.json';
+const AUTO_MS = 120000;
+let DATA = null, ISSUES = [];
+let view = {tab:'open', q:''};
+
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fd(iso, withYear=true){ if(!iso) return '—'; const [y,m,d]=iso.slice(0,10).split('-'); return `${+d} ${MON[+m-1]}${withYear?" '"+y.slice(2):''}`; }
+function fdt(iso){ if(!iso) return '—'; const t = iso.length>10 ? ' '+iso.slice(11,16) : ''; return fd(iso)+t; }
+function inr(v, dp=2){ if(v==null||isNaN(v)) return '—'; const a=Math.abs(v); return (v<0?'−':'')+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:dp,minimumFractionDigits:a<100&&dp?2:0}); }
+function nf(v){ if(v==null||isNaN(v)) return '—'; return Math.round(v).toLocaleString('en-IN'); }
+function compact(v){ if(v==null||isNaN(v)) return '—'; const a=Math.abs(v);
+  if(a>=1e7) return (v/1e7).toFixed(2)+' Cr'; if(a>=1e5) return (v/1e5).toFixed(2)+' L'; if(a>=1e3) return (v/1e3).toFixed(1)+'K'; return String(Math.round(v)); }
+function pct(v, dp=1){ if(v==null||isNaN(v)) return '—'; return (v>0?'+':'')+v.toFixed(dp)+'%'; }
+const todayISO = (()=>{ const d=new Date(Date.now()+ (330+new Date().getTimezoneOffset())*60000); return d.toISOString().slice(0,10); })();
+function daysTo(iso){ if(!iso) return null; return Math.round((Date.parse(iso)-Date.parse(todayISO))/86400000); }
+
+/* Rights math: ratio = rights shares offered for every `held` shares */
+function ratioOf(it){
+  const d = it.detail||{};
+  if(d.entRights && d.entHeld) return {r:d.entRights, h:d.entHeld};
+  const m = String(it.ratio||'').match(/(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/);
+  return m ? {r:+m[1], h:+m[2]} : null;
+}
+function cmpOf(it){
+  if(it.cmp!=null) return it.cmp;                       // reconciled by the scraper (exchange close first)
+  const d = it.stock && it.stock.daily; return d && d.length ? d[d.length-1][4] : null;
+}
+function mcapTxt(v){ if(v==null) return '—'; return v>=1000 ? '₹'+Math.round(v).toLocaleString('en-IN')+' Cr' : '₹'+v.toFixed(v<100?1:0)+' Cr'; }
+function sharesTxt(cr){ if(cr==null) return '—'; return cr>=1 ? cr.toFixed(2)+' Cr' : (cr*100).toFixed(2)+' L'; }
+function shpOf(it){ const s = it.credit && it.credit.shp; if(!s||!s.rows) return null;
+  const q = s.quarters||[]; const last = k => { const v=(s.rows[k]||[]); return v.length? v[v.length-1] : null; };
+  const prev = k => { const v=(s.rows[k]||[]); return v.length>1? v[v.length-2] : null; };
+  return {q, last, prev, rows:s.rows, asOf:q[q.length-1]}; }
+function tickerChips(it){
+  const d = it.detail||{}; const a=[];
+  if(d.nse) a.push(`<span class="tk"><span>NSE</span>${esc(d.nse)}</span>`);
+  if(d.bse) a.push(`<span class="tk"><span>BSE</span>${esc(d.bse)}</span>`);
+  if(d.reNse) a.push(`<span class="tk re"><span>RE NSE</span>${esc(d.reNse)}</span>`);
+  if(d.reBse) a.push(`<span class="tk re"><span>RE BSE</span>${esc(d.reBse)}</span>`);
+  return a.length ? `<div class="tickers">${a.join('')}</div>` : '';
+}
+function heroHtml(it, m){
+  const st = it.stock, chg = it.chgPct ?? (st&&st.chgPct), live = it.priceCheck&&it.priceCheck.used.src==='Live price';
+  const sh = shpOf(it), holders = sh&&sh.last('Shareholders'), hp = sh&&sh.prev('Shareholders');
+  return `<div class="hero">
+      <div class="hp cmp"><div class="k">CMP${live?' · live':''}</div><div class="v">${inr(m.C)}</div><div class="s ${chg==null?'':chg>=0?'pos':'neg'}">${chg!=null?pct(chg,2)+' today':'&nbsp;'}</div></div>
+      <div class="hp iss"><div class="k">Issue price</div><div class="v">${inr(it.price)}</div><div class="s ${m.disc==null?'':m.disc>=0?'pos':'neg'}">${m.disc!=null?Math.abs(m.disc).toFixed(1)+'% '+(m.disc>=0?'below':'above')+' CMP':'&nbsp;'}</div></div>
+      <div class="hp re"><div class="k">RE price</div><div class="v">${inr(m.reMkt)}</div><div class="s">fair ${inr(m.reFair)}</div></div>
+    </div>
+    <div class="keyrow">
+      <div><div class="k">Market cap</div><div class="v">${mcapTxt(it.mcapCr)}</div></div>
+      <div><div class="k">Shares outstanding</div><div class="v">${sharesTxt(it.sharesCr)}</div></div>
+      <div><div class="k">Shareholders</div><div class="v">${holders!=null?nf(holders):'—'}${holders!=null&&hp?` <small>${holders>=hp?'+':''}${nf(holders-hp)} QoQ</small>`:''}</div></div>
+    </div>`;
+}
+function priceWarn(it){
+  const pcx = it.priceCheck; if(!pcx || !(pcx.mismatch||[]).length) return '';
+  return `<div class="pwarn">⚠ Price check: ${pcx.mismatch.map(s=>`${esc(s.src)} shows ${inr(s.price)}`).join(', ')}, but the actual ${esc(pcx.used.src.toLowerCase())} is <b>${inr(pcx.used.price)}</b>${pcx.used.asOf?' ('+fdt(pcx.used.asOf)+')':''}. Using ${inr(pcx.used.price)}.</div>`;
+}
+function math(it){
+  const P = it.price, C = cmpOf(it), R = ratioOf(it);
+  const o = {P, C, R};
+  // Shares go ex-rights on the record date (T+1 settlement): from then on CMP already
+  // reflects the dilution, so one RE is worth CMP − issue price. Before that, use TERP.
+  o.exRights = !!(it.record && todayISO >= it.record);
+  if(P && C){
+    o.disc = (C-P)/C*100;           // discount of issue price to CMP
+    o.intrinsic = C-P;
+  }
+  if(P && C && R){
+    o.dilution = R.r/R.h*100;
+    if(o.exRights){ o.terp = C; o.reFair = Math.max(0, C - P); }
+    else { o.terp = (R.h*C + R.r*P)/(R.h+R.r); o.reFair = Math.max(0, o.terp - P); }
+  } else if(P && C){ o.reFair = Math.max(0, C - P); }
+  const RE = (it.re && it.re.ltp) || it.reCmp;
+  if(RE!=null && P && C){
+    o.reMkt = RE;
+    o.effCost = RE + P;                    // buy RE + pay issue price
+    o.reGap = (C - o.effCost)/C*100;       // +ve => cheaper than buying in market
+  }
+  return o;
+}
+
+/* ================= RE rating engine =================
+   Score 0-100 from six measurable factors. The heaviest one asks: how many "normal
+   moves" of this stock would it take to wipe out the discount before the new shares list?
+   It's all rules-based on public data: an educational screen, not advice. */
+function tradingDaysBetween(a, b){ if(!a||!b) return null; const d=(Date.parse(b)-Date.parse(a))/86400000; return Math.max(1, Math.round(d*5/7)); }
+function volStats(st){
+  const cs = (st&&st.daily)||[]; const n = Math.min(66, cs.length-1);
+  if(n < 10) return null;
+  const rets = []; for(let i=cs.length-n;i<cs.length;i++){ const a=cs[i-1][4], b=cs[i][4]; if(a>0&&b>0) rets.push(Math.log(b/a)); }
+  const mean = rets.reduce((s,x)=>s+x,0)/rets.length;
+  const sd = Math.sqrt(rets.reduce((s,x)=>s+(x-mean)**2,0)/(rets.length-1));
+  const closes = cs.map(c=>c[4]);
+  const sma = k => closes.length>=k ? closes.slice(-k).reduce((s,x)=>s+x,0)/k : null;
+  const back = k => closes.length>k ? closes[closes.length-1-k] : null;
+  const valTr = cs.slice(-22).map(c=>c[4]*c[5]); // ₹ traded per day
+  return { dailyVol: sd, annVol: sd*Math.sqrt(250), sma50: sma(50), sma200: sma(200),
+    ret3M: back(63)? (closes[closes.length-1]/back(63)-1)*100 : null,
+    ret1M: back(21)? (closes[closes.length-1]/back(21)-1)*100 : null,
+    avgValue: valTr.reduce((s,x)=>s+x,0)/Math.max(1,valTr.length) };
+}
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+/* ================= Credit & default assessment =================
+   Rating grade (agency rationale) → base points; unrated companies are judged on
+   interest cover / net worth. Default evidence (a "D" grade now or in the agency's
+   3-year history, insolvency/CIRP, one-time settlement, delays in debt servicing)
+   cuts the points and caps the overall score. */
+const GRADE_PTS = {1:20, 2:19, 3:17, 4:14, 5:9, 6:5, 7:2, 8:0};
+const GRADE_NAME = {1:'AAA',2:'AA',3:'A',4:'BBB',5:'BB',6:'B',7:'C',8:'D'};
+function creditAssess(it){
+  const c = it.credit;
+  const o = {pts:10, cls:'cr-na', badge:'Credit: not checked', short:'—', why:'Credit data not fetched yet (refreshes daily).', notes:[], cap:null};
+  if(!c) return o;
+  const rt = c.rating, f = c.fin||{}, notes = o.notes;
+  const flagTypes = new Set((c.flags||[]).map(x=>x.type));
+  const pastD = (c.pastDefaults||[]).length>0;
+  let pts;
+  if(rt && rt.rank){
+    pts = GRADE_PTS[rt.rank] + (/\+$/.test(rt.grade)?0.5:/-$/.test(rt.grade)?-0.5:0);
+    o.badge = `${rt.agency||''} ${rt.grade}${rt.outlook?' · '+rt.outlook:''}`.trim();
+    o.cls = rt.rank<=4?'cr-ig':rt.rank<=6?'cr-sub':'cr-bad';
+    notes.push(`${rt.agency||'Agency'} rates it <b>${esc(rt.raw||rt.grade)}</b>${rt.outlook?' ('+rt.outlook+' outlook)':''}: ${rt.rank<=4?'investment grade':rt.rank<=6?'below investment grade (speculative)':rt.rank===8?'<b>in default</b>':'very high default risk'}.`);
+  } else {
+    // unrated / withdrawn: use financial strength
+    const icr = f.icr, nw = f.netWorth, debtFree = f.borrowings!=null && f.borrowings < 1;
+    if(nw!=null && nw<0) pts = 2;
+    else if(debtFree) pts = 14;
+    else if(icr==null) pts = 9;
+    else pts = icr>=5?15 : icr>=3?13 : icr>=1.5?10 : icr>=1?6 : 3;
+    o.badge = c.unrated ? 'Not rated' : 'Rating withdrawn/unread';
+    o.cls = 'cr-na';
+    notes.push(c.unrated ? 'No credit rating on record (common for small companies with little bank debt). Judged on financials instead.' : 'Latest rating document could not be read or the rating was withdrawn. Judged on financials.');
+  }
+  if(rt && rt.inc){ pts -= 3; notes.push('Agency says <b>Issuer Not Cooperating</b> (the company stopped sharing information): usually a warning sign.'); }
+  else if(c.incHistory){ pts -= 1; notes.push('Was in "Issuer Not Cooperating" status at some point in the rating history.'); }
+  if(rt && rt.outlook==='Negative'){ pts -= 2; notes.push('Outlook <b>Negative</b>: downgrade risk.'); }
+  if(f.netWorth!=null && f.netWorth<0){ pts -= 4; notes.push(`<b>Negative net worth</b> (₹${nf(f.netWorth)} Cr): losses have wiped out shareholders' equity.`); }
+  if(f.debtEquity!=null && f.debtEquity>2){ pts -= 2; notes.push(`High debt: debt/equity ${f.debtEquity}×.`); }
+  if(f.icr!=null && f.icr<1.5 && !(rt&&rt.rank)){ notes.push(`Weak interest cover ${f.icr}× (operating profit vs interest).`); }
+  if(c.pledgePct){ pts -= c.pledgePct>50?4:c.pledgePct>20?2:0; notes.push(`Promoters have pledged <b>${c.pledgePct}%</b> of their shares.`); }
+  if(rt && rt.rank===8){ o.cap = 30; o.capWhy = 'Capped at 30: the company is currently rated D (in default).'; o.cls='cr-bad'; }
+  else if(pastD || flagTypes.has('insolvency') || flagTypes.has('ots')){
+    pts = Math.min(pts, 5); o.cap = 50; o.capWhy = 'Capped at 50: default / insolvency / settlement in recent history.'; o.cls='cr-bad';
+    if(pastD) notes.push(`<b>Past default:</b> rated D ${c.pastDefaults.slice(0,3).map(d=>`(${[d.agency,d.date].filter(Boolean).map(esc).join(', ')})`).join(', ')} within the agency's 3-year history.`);
+    if(flagTypes.has('insolvency')) notes.push('Rating documents mention <b>insolvency / NCLT / CIRP</b> proceedings.');
+    if(flagTypes.has('ots')) notes.push('Rating documents mention a <b>one-time settlement or debt restructuring</b>.');
+  }
+  if(flagTypes.has('default') && !(rt&&rt.rank===8)){ pts = Math.min(pts, 6); notes.push('Rating documents mention <b>delays/defaults in debt servicing</b>; see evidence below.'); if(o.cap==null){o.cap=55;o.capWhy='Capped at 55: delays in debt servicing reported.';} }
+  if(flagTypes.has('npa')) notes.push('Rating documents mention NPA / SMA classification.');
+  o.defaultFlag = (rt&&rt.rank===8) || pastD || flagTypes.has('default') || flagTypes.has('insolvency') || flagTypes.has('ots');
+  o.pts = Math.round(clamp(pts,0,20)*10)/10;
+  o.short = rt&&rt.rank ? rt.grade : o.badge;
+  o.why = notes.map(n=>n.replace(/<[^>]+>/g,'')).join(' ') || 'No credit concerns found.';
+  return o;
+}
+function creditPills(it){
+  const ca = creditAssess(it); if(!it.credit) return '';
+  return `<span class="pill ${ca.cls}" title="Credit rating">${esc(ca.badge)}</span>${ca.defaultFlag?'<span class="pill cr-bad">⚠ Default history</span>':''}${it.credit.rating&&it.credit.rating.inc?'<span class="pill cr-bad">INC</span>':''}`;
+}
+function rate(it){
+  if(it._rate) return it._rate;
+  const m = math(it), st = it.stock, vs = volStats(st), s = latestSub(it);
+  const r = {m, vs, factors:[], score:null};
+  if(m.disc==null){ r.label='Not rated'; r.cls='v-na'; r.short='Awaiting issue price / market price'; return it._rate=r; }
+  // days at risk: from today (or issue open) until the new shares can be sold
+  const from = todayISO > (it.open||todayISO) ? todayISO : it.open;
+  const until = (it.detail&&it.detail.dates&&it.detail.dates.listing) || (it.close ? new Date(Date.parse(it.close)+14*86400000).toISOString().slice(0,10) : null);
+  r.daysAtRisk = tradingDaysBetween(from, until) || 15;
+  const F = (key, name, pts, max, value, why) => r.factors.push({key, name, pts:Math.round(pts*10)/10, max, value, why});
+
+  // 1. Safety cushion in volatility units (35)
+  if(vs && vs.dailyVol>0){
+    const move = vs.dailyVol*Math.sqrt(r.daysAtRisk)*100;     // 1-sigma % move over the risk window
+    r.expMove = move;
+    r.cushionSigma = m.disc/move;
+    // probability the price is below the issue price at listing (normal approx, log space)
+    const z = m.disc>-99 ? Math.log(1/(1-m.disc/100))/(vs.dailyVol*Math.sqrt(r.daysAtRisk)) : -9;
+    r.probLoss = 100*(1-ncdf(z));
+    F('cushion','Safety cushion vs volatility', clamp(r.cushionSigma/2,0,1)*30, 30,
+      `${r.cushionSigma.toFixed(2)}σ`, `Discount ${m.disc.toFixed(1)}% vs a typical ${move.toFixed(1)}% move over ~${r.daysAtRisk} trading days until the new shares list. ≈${probTxt(r.probLoss)} chance the share trades below the issue price by then.`);
+  } else {
+    F('cushion','Safety cushion vs volatility', clamp(m.disc/30,0,1)*17, 30, '—', 'Not enough price history for volatility; scored on discount only (max 17).');
+  }
+  // 2. Discount size (20)
+  F('disc','Discount to market price', clamp(m.disc/30,0,1)*15, 15, m.disc.toFixed(1)+'%',
+    m.disc<0 ? 'Issue price is ABOVE the market price: buying in the market is cheaper.' : m.disc>=30 ? 'Deep discount (30%+).' : `Bigger is better; 30%+ earns full marks.`);
+  // 3. Demand / subscription (15)
+  if(s && s.times!=null){
+    const daysLeft = daysTo(it.close), early = it.status==='open' && daysLeft>2;
+    const pts = s.times>=1.5?12 : s.times>=1?10 : early ? 6+s.times*3 : s.times*8;
+    F('subs','Subscription demand', pts, 12, s.times.toFixed(2)+'×', s.times>=1?'Fully subscribed: strong demand.' : early?'Rights issues usually fill up in the last 2-3 days; partly scored as neutral.':'Under-subscribed: weak demand (promoters may take up the shortfall).');
+  } else F('subs','Subscription demand', 6, 12, '—', 'Not open yet: scored neutral.');
+  // 4. Trend (12)
+  if(vs){
+    let pts = 5; const why=[];
+    if(vs.sma50){ if(m.C>vs.sma50){pts+=2.5;why.push('above 50-day average');} else {pts-=2.5;why.push('below 50-day average');} }
+    if(vs.ret3M!=null){ pts += clamp(vs.ret3M/12,-2.5,2.5); why.push(`3M return ${pct(vs.ret3M)}`); }
+    F('trend','Price trend', clamp(pts,0,10), 10, vs.ret3M!=null?pct(vs.ret3M):'—', 'Stock is '+why.join(', ')+'.');
+  } else F('trend','Price trend', 5, 10, '—', 'No history: neutral.');
+  // 5. Liquidity (10): can you exit the new shares?
+  if(vs){
+    const cr = vs.avgValue/1e7;
+    F('liq','Liquidity (exit ease)', clamp((Math.log10(Math.max(cr,0.001))+2)/3,0,1)*8, 8, '₹'+(cr>=1?cr.toFixed(1)+' Cr':(cr*100).toFixed(1)+' L')+'/day',
+      cr>=10?'Very liquid.':cr>=1?'Reasonably liquid.':'Thinly traded: selling new shares may move the price.');
+  } else F('liq','Liquidity (exit ease)', 2.5, 8, '—', 'Unknown.');
+  // 6. Dilution (8)
+  if(m.dilution!=null) F('dil','Dilution', clamp(1-(m.dilution-20)/100,0,1)*5, 5, '+'+m.dilution.toFixed(0)+'% shares',
+    m.dilution>100?'Equity more than doubles: heavy dilution, the business must deploy a lot of new capital well.':m.dilution>40?'Significant dilution.':'Modest dilution.');
+  else F('dil','Dilution', 2.5, 5, '—', 'Ratio not announced.');
+
+  // 7. Credit rating & default history (20)
+  const ca = creditAssess(it); r.credit = ca;
+  F('credit','Credit rating & default history', ca.pts, 20, ca.short, ca.why);
+
+  r.score = Math.round(r.factors.reduce((a,f)=>a+f.pts,0));
+  if(m.disc<=0) r.score = Math.min(r.score, 25);
+  if(ca.cap!=null && r.score>ca.cap){ r.score = ca.cap; r.capNote = ca.capWhy; }
+  r.stars = clamp(Math.round(r.score/20*2)/2, 0.5, 5);
+  if(r.score>=70){ r.cls='v-hi'; r.label='Attractive'; }
+  else if(r.score>=55){ r.cls='v-mid'; r.label='Moderate'; }
+  else if(r.score>=40){ r.cls='v-mid'; r.label='Weak'; }
+  else { r.cls='v-lo'; r.label='Avoid'; }
+
+  // ---- decisions with numbers
+  const reFair = m.reFair, reMkt = m.reMkt;
+  const applyEdge = m.C - m.P;                       // ₹ per RE if you apply and price holds
+  const riskAdj = vs ? applyEdge - m.C*(r.expMove/100)*0.5 : applyEdge*0.7;  // haircut half a typical move
+  r.applyEdge = applyEdge; r.riskAdjEdge = riskAdj;
+  const reTrading = it.status!=='closed' && it.renunciation && todayISO<=it.renunciation && (it.open? todayISO>=it.open : true);
+  // Holder (you already received REs)
+  if(m.disc<=0) r.holder = {act:'Sell RE / let others apply', cls:'neg', why:`Issue price ${inr(m.P)} ≥ market ${inr(m.C)}: applying makes no sense. ${reMkt>0?`Sell REs at ~${inr(reMkt)} each`:'Sell REs if a buyer bids anything'}; never pay above market.`};
+  else if(reMkt!=null && reMkt > applyEdge*1.02) r.holder = {act:'Sell your REs', cls:'pos', why:`RE sells at ${inr(reMkt)}, MORE than you'd gain by applying (${inr(applyEdge)} = CMP − issue price). Selling locks in the value today with no further risk.`};
+  else if(r.score>=55) r.holder = {act:'Apply (subscribe)', cls:'pos', why:`Each RE turns into a share worth ${inr(m.C)} for ${inr(m.P)}: ${inr(applyEdge)} gain per RE (≈${inr(Math.max(0,riskAdj))} after a risk haircut)${reMkt!=null?`, vs only ${inr(reMkt)} if you sell the RE`:''}.`};
+  else if(reMkt!=null && applyEdge>0 && reMkt < applyEdge*0.6 && m.disc>=5 && (r.probLoss==null || r.probLoss<25)) r.holder = {act:'Apply cautiously (RE underpriced)', cls:'', why:`The market pays only ${inr(reMkt)} for an RE worth ~${inr(applyEdge)}, so selling gives away ${((1-reMkt/applyEdge)*100).toFixed(0)}% of its value. But the score is weak (${r.score}/100)${r.probLoss!=null?`, with ≈${probTxt(r.probLoss)} chance the share is below ${inr(m.P)} at listing`:''}. Apply only with money you can keep invested, or sell part.`};
+  else r.holder = {act: reMkt!=null ? 'Prefer selling REs' : 'Apply only if you like the stock', cls:'neg', why:`Weak score ${r.score}/100. ${reMkt!=null?`Selling at ${inr(reMkt)} per RE avoids the risk of the price falling toward ${inr(m.P)}.`:'If you skip, try to SELL the REs during the renunciation window: an unused RE lapses and is worth ₹0.'}`};
+  // Non-holder (should you BUY REs from the market?)
+  if(reMkt==null) r.buyer = {act:reTrading?'Watch RE price':'No RE quote yet', cls:'', why:`Buying an RE is worth it only if RE price + ${inr(m.P)} is well below the share price ${inr(m.C)}. Max sensible RE price ≈ ${inr(Math.max(0,applyEdge*0.85))} (keeps a 15% margin on the gap).`};
+  else if(m.reGap>=5 && r.score>=55) r.buyer = {act:'Buy RE & apply', cls:'pos', why:`Effective cost ${inr(m.effCost)} (RE ${inr(reMkt)} + issue ${inr(m.P)}) vs share price ${inr(m.C)}: ${m.reGap.toFixed(1)}% cheaper than buying in the market.`};
+  else if(m.reGap>=5) r.buyer = {act:'RE cheap, but stock risky', cls:'', why:`Via RE you pay ${inr(m.effCost)} vs share price ${inr(m.C)} (${m.reGap.toFixed(1)}% cheaper). The overall score is only ${r.score}/100${r.cushionSigma!=null?` (cushion ${r.cushionSigma.toFixed(1)}σ)`:''}, so the share could fall before the new shares list. Only for investors who'd buy this stock anyway.`};
+  else if(m.reGap>0) r.buyer = {act:'Marginal: skip', cls:'', why:`Effective cost ${inr(m.effCost)} is only ${m.reGap.toFixed(1)}% below the share price ${inr(m.C)}: too thin for the 2-3 week wait and the price risk.`};
+  else r.buyer = {act:"Don't buy RE", cls:'neg', why:`RE ${inr(reMkt)} + issue ${inr(m.P)} = ${inr(m.effCost)}, which is ${Math.abs(m.reGap).toFixed(1)}% MORE than just buying the share at ${inr(m.C)}.`};
+  if(r.credit && r.credit.cap===30 && m.disc>0){
+    r.holder = {act:'Sell REs: company in default', cls:'neg', why:`The company is currently rated D (it has defaulted on debt). New money may go to lenders rather than growth, and the share can fall sharply.${reMkt!=null?` Selling REs at ${inr(reMkt)} each turns them into cash now.`:' Sell your REs in the renunciation window; letting them lapse makes them worth ₹0.'}`};
+    if(r.buyer && /Buy RE/.test(r.buyer.act)) r.buyer = {act:"Don't buy RE (in default)", cls:'neg', why:'The discount looks large, but the company is in default: this is speculation, not investing.'};
+  }
+  if(r.credit && r.credit.defaultFlag){
+    const w = ' ⚠ This company has a default / insolvency record: treat it as high-risk money only.';
+    r.holder.why += w; if(r.buyer) r.buyer.why += w;
+  }
+  r.maxReBuy = Math.max(0, applyEdge*0.85);
+  r.short = `${r.holder.act}${reMkt!=null?' · RE '+inr(reMkt)+' vs fair '+inr(reFair):''}`;
+  return it._rate = r;
+}
+function probTxt(p){ return p==null?'—':p<1?'<1%':p>99?'>99%':p.toFixed(0)+'%'; }
+function ncdf(x){ const t=1/(1+0.2316419*Math.abs(x)); const d=0.3989423*Math.exp(-x*x/2);
+  const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return x>0?1-p:p; }
+function starsHtml(n){ let h=''; for(let i=1;i<=5;i++) h += `<i class="${n>=i?'f':n>=i-0.5?'h':'e'}">★</i>`; return `<span class="stars" title="${n} out of 5 stars" aria-label="${n} out of 5 stars">${h}</span>`; }
+function verdict(it){
+  const r = rate(it);
+  if(r.score==null) return {cls:'v-na', score:'—', t:'Not rated yet', s:r.short};
+  const m=r.m; const bits=[`Discount ${m.disc.toFixed(1)}%`];
+  if(r.cushionSigma!=null) bits.push(`cushion ${r.cushionSigma.toFixed(1)}σ`);
+  bits.push(`RE fair ${inr(m.reFair)}`); if(m.reMkt!=null) bits.push(`RE mkt ${inr(m.reMkt)}`);
+  return {cls:r.cls, score:`${r.score}<small>/100</small>`, t:`${starsHtml(r.stars)} ${r.label} · ${r.holder.act}`, s:bits.join(' · ')};
+}
+function statusPill(it){
+  if(it.status==='open'){
+    const ren = it.renunciation && todayISO<=it.renunciation;
+    return `<span class="pill p-open">Open</span>${ren?'<span class="pill p-ren">RE trading</span>':''}`;
+  }
+  if(it.status==='upcoming') return `<span class="pill p-up">Upcoming</span>`;
+  return `<span class="pill p-close">Closed</span>`;
+}
+function symLine(it){
+  const d = it.detail||{}; const a=[];
+  if(d.nse) a.push('NSE: '+d.nse); if(d.bse) a.push('BSE: '+d.bse);
+  if(d.reNse) a.push('RE NSE: '+d.reNse); if(d.reBse) a.push('RE BSE: '+d.reBse);
+  return a.join(' · ');
+}
+function latestSub(it){
+  const h = it.subsHistory||[];
+  const last = h.length ? h[h.length-1] : null;
+  const s = it.subscription;
+  if(s && (!last || (s.at||'')>=(last.at||''))) return s;
+  return last;
+}
+
+/* ================= load ================= */
+async function load(manual){
+  if(manual) $('#refreshBtn').textContent='↻ Loading…';
+  try{
+    const r = await fetch(DATA_URL+'?t='+Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    DATA = j; ISSUES = j.issues||[];
+    ['open','upcoming','closed'].forEach(k=>{ $('#c-'+k).textContent = ' '+ISSUES.filter(i=>i.status===k).length; });
+    stamp();
+    render();
+  }catch(e){
+    if(!DATA) $('#grid').innerHTML = `<div class="err">Could not load rights data (${esc(e.message)}). The data file is generated every 15 minutes by the GitHub Action — please retry shortly.</div>`;
+  }finally{ $('#refreshBtn').textContent='↻ Refresh'; }
+}
+function stamp(){
+  if(!DATA) return;
+  const g = new Date(DATA.generatedAt); const mins = Math.max(0,Math.round((Date.now()-g)/60000));
+  $('#stamp').innerHTML = `<span class="live-dot"></span>Updated ${g.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${mins<1?'just now':mins+' min ago'}`;
+}
+
+/* ================= render ================= */
+function matches(it){
+  if(!view.q) return true;
+  const q = view.q.toLowerCase(); const d=it.detail||{};
+  return [it.name,it.title,d.nse,d.bse,d.isin,d.reNse,d.reBse].some(x=>String(x||'').toLowerCase().includes(q));
+}
+function render(){
+  const g = $('#grid');
+  if(!DATA){ return; }
+  if(view.tab==='cal') return renderCal(g);
+  if(view.tab==='rate') return renderRate(g);
+  if(view.tab==='subs') return renderSubs(g);
+  if(view.tab==='vol') return renderVol(g);
+  let list = ISSUES.filter(i=>i.status===view.tab && matches(i));
+  if(view.tab==='closed') list = list.slice(0, view.q?200:60);
+  if(!list.length){ g.innerHTML = `<div class="note">No ${view.tab} rights issues${view.q?' matching "'+esc(view.q)+'"':''} right now.</div>`; return; }
+  g.innerHTML = list.map(card).join('');
+}
+function card(it){
+  const m = math(it), v = verdict(it), s = latestSub(it), st = it.stock;
+  const R = m.R;
+  const subsHtml = s && s.times!=null ? `
+    <div class="subs"><h4>Subscription <span class="tot">${s.times.toFixed(2)}×</span></h4>
+      <div class="bar"><i class="${s.times<1?'under':''}" style="width:${Math.min(100,s.times*100)}%"></i></div>
+      <div class="meta">as on ${fdt(s.at)}${s.bidQty?' · '+compact(s.bidQty)+' shares bid':''}</div></div>` :
+    (it.status!=='upcoming' ? '' : `<div class="subs"><h4>Subscription <span class="tot">opens ${fd(it.open)}</span></h4></div>`);
+  const volHtml = st ? `<div class="mini">
+      <div class="fact"><div class="k">Vol today</div><div class="v">${compact(st.volume.lastDay)}</div></div>
+      <div class="fact"><div class="k">Avg 1M/day</div><div class="v">${compact(st.volume.avg1M)}</div></div>
+      <div class="fact"><div class="k">Avg 1Y/day</div><div class="v">${compact(st.volume.avg1Y)}</div></div>
+      <div class="fact"><div class="k">Vol vs 1M</div><div class="v">${st.volume.avg1M?(st.volume.lastDay/st.volume.avg1M).toFixed(1)+'×':'—'}</div></div></div>` : '';
+  const dl = daysTo(it.close);
+  return `<div class="card">
+    <div class="card-top">
+      ${it.logo?`<img class="clogo" src="${esc(it.logo)}" alt="" loading="lazy" onerror="this.style.display='none'">`:''}
+      <div style="min-width:0"><h3>${esc(it.name)}</h3><div class="crrow">${creditPills(it)}</div></div>
+      <div class="badges">${statusPill(it)}${it.status==='open'&&dl!=null&&dl>=0?`<span class="pill p-x">${dl===0?'Closes today':dl+'d left'}</span>`:''}</div>
+    </div>
+    ${tickerChips(it)}
+    ${heroHtml(it, m)}
+    <div class="facts">
+      <div class="fact"><div class="k">Ratio</div><div class="v">${R?`${R.r}:${R.h}`:esc(it.ratio||'—')} <small>${R?'R:H':''}</small></div></div>
+      <div class="fact"><div class="k">Size</div><div class="v">${it.sizeCr!=null?'₹'+it.sizeCr+' Cr':'—'}${it.sizeCr&&it.mcapCr?`<small> ${(it.sizeCr/it.mcapCr*100).toFixed(0)}% of mcap</small>`:''}</div></div>
+      <div class="fact"><div class="k">Promoters</div><div class="v">${(()=>{const sh=shpOf(it);const p=sh&&sh.last('Promoters');return p!=null?p.toFixed(1)+'%':'—';})()}</div></div>
+      <div class="fact"><div class="k">Rights shares</div><div class="v">${(()=>{const n=(it.detail&&it.detail.issueShares)||(it.subscription&&it.subscription.shares);return n?sharesTxt(n/1e7):'—';})()}</div></div>
+      <div class="fact"><div class="k">Dilution</div><div class="v">${m.dilution!=null?'+'+m.dilution.toFixed(0)+'%':'—'}</div></div>
+      <div class="fact"><div class="k">52W H / L</div><div class="v" style="font-size:.74rem">${st&&st.hl.w52?`${inr(st.hl.w52.high)} / ${inr(st.hl.w52.low)}`:'—'}</div></div>
+    </div>
+    ${priceWarn(it)}
+    <div class="dates">
+      <div>Record<b>${fd(it.record)}</b></div>
+      <div>Opens<b>${fd(it.open)}</b></div>
+      <div>RE last<b>${fd(it.renunciation)}</b></div>
+      <div>Closes<b>${fd(it.close)}</b></div>
+    </div>
+    ${subsHtml}
+    ${volHtml}
+    <div class="verdict ${v.cls}"><div class="vscore">${v.score}</div><div class="vtxt"><div class="vt">${v.t}</div><div class="vs">${v.s}</div></div></div>
+    <div class="card-actions">
+      <button class="btn btn-detail" data-open="${it.id}">Full analysis →</button>
+      <button class="btn btn-calc" data-open="${it.id}" data-goto="calcSect">💰 Calculate</button>
+      <a class="btn btn-alt" href="${esc(it.cgUrl)}" target="_blank" rel="noopener">Chittorgarh ↗</a>
+    </div>
+  </div>`;
+}
+
+/* ---------- RE Ratings tab ---------- */
+const LEARN = `<details class="learn"><summary>📘 New to rights issues? Read this first (2 min)</summary>
+  <p><b>What is a rights issue?</b> A listed company sells new shares to its <i>existing</i> shareholders, usually at a discount, in a fixed ratio. "3:5" here means 3 new shares for every 5 you held on the <b>record date</b>.</p>
+  <p><b>What is an RE (Rights Entitlement)?</b> Shortly after the record date, your demat account gets REs, one per new share you may buy. An RE is a temporary security. You can:</p>
+  <ul><li><b>Apply (subscribe):</b> pay the issue price and each RE becomes a share.</li>
+  <li><b>Sell (renounce) the RE</b> on the exchange during the RE trading window and pocket its price.</li>
+  <li><b>Do nothing:</b> the RE <b>lapses and becomes worth ₹0</b>, and your stake is diluted. This is the one choice that is never sensible.</li></ul>
+  <p><b>What is an RE worth?</b> Roughly <b>share price − issue price</b> (once the share trades ex-rights). If the share is ₹120 and the issue price ₹100, one RE is worth about ₹20. If the RE trades at ₹12, buying it and applying costs ₹112 for a ₹120 share. That's the "Buy RE &amp; apply" opportunity.</p>
+  <p><b>The risk:</b> new shares reach your demat 1–3 weeks after the issue closes. If the share price falls below the issue price by then, you lose. So the key question is: <i>is the discount big enough compared with how much this stock normally moves?</i> That's the "safety cushion (σ)" below. 1σ is one typical move; 2σ or more is comfortable.</p>
+  <p><b>How the score works (0–100):</b> cushion vs volatility 30 · credit rating &amp; default history 20 · discount 15 · subscription demand 12 · price trend 10 · liquidity 8 · dilution 5. A company currently rated D (in default) is capped at 30; one with a default, insolvency or settlement in recent history is capped at 50.</p>
+  <p><b>Credit ratings in one line:</b> AAA → AA → A → BBB are "investment grade" (low default risk). BB → B → C are speculative. <b>D means the company is already in default</b> on a loan or bond. "Issuer Not Cooperating (INC)" means the company stopped giving the rating agency information, which is often a bad sign. 70+ Attractive ★★★★, 55–69 Moderate, 40–54 Weak, below 40 Avoid. It's a rules-based screen on public data, not a recommendation. Read the Letter of Offer: why the company needs the money matters as much as the numbers.</p>
+</details>`;
+function renderRate(g){
+  const list = ISSUES.filter(i=>(i.status!=='closed') && matches(i)).map(i=>({it:i, r:rate(i)}));
+  list.sort((a,b)=>(b.r.score??-1)-(a.r.score??-1));
+  if(!list.length){ g.innerHTML='<div class="note">No open or upcoming rights issues to rate.</div>'; return; }
+  g.innerHTML = `<div class="rhead">⭐ <b>RE Ratings</b> score every open and upcoming rights issue 0–100 and give a plain action: what to do <b>if you hold the shares</b> (you get REs) and <b>if you don't</b> (should you buy REs in the market?). Tap a company for the full scorecard and a ₹ worked example.</div>
+  <div style="grid-column:1/-1">${LEARN}</div>
+  <div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>CMP</th><th>Issue price</th><th>RE price</th><th>Mkt cap</th><th>Shareholders</th><th>Score</th><th>Rating</th><th>Credit</th><th>Discount</th><th>Cushion</th><th>P(below issue)</th><th>RE fair</th><th>Max RE buy</th><th>If you hold shares</th><th>If you don't hold</th></tr></thead><tbody>
+  ${list.map(({it,r})=>{ const m=r.m; return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${it.status} · closes ${fd(it.close)}</div></td>
+    <td>${inr(m.C)}${it.priceCheck&&it.priceCheck.mismatch&&it.priceCheck.mismatch.length?' <span title="Sources disagree; see details">⚠</span>':''}</td><td><b>${inr(it.price)}</b></td><td><b>${inr(m.reMkt)}</b></td><td>${mcapTxt(it.mcapCr)}</td><td>${(()=>{const sh=shpOf(it),h=sh&&sh.last('Shareholders');return h!=null?nf(h):'—';})()}</td>
+    <td>${r.score==null?'—':`<b>${r.score}</b><div class="sbar"><i style="width:${r.score}%"></i></div>`}</td>
+    <td>${r.score==null?'—':starsHtml(r.stars)+'<div style="font-size:.66rem">'+r.label+'</div>'}</td>
+    <td style="text-align:left">${creditPills(it)||'<span class="pill cr-na">—</span>'}</td>
+    <td class="${m.disc>=0?'pos':'neg'}">${m.disc!=null?m.disc.toFixed(1)+'%':'—'}</td>
+    <td>${r.cushionSigma!=null?r.cushionSigma.toFixed(2)+'σ':'—'}</td>
+    <td>${probTxt(r.probLoss)}</td>
+    <td>${inr(m.reFair)}</td><td>${r.score!=null?inr(r.maxReBuy):'—'}</td>
+    <td class="wrap"><b class="${r.holder?r.holder.cls:''}">${r.holder?r.holder.act:'—'}</b></td>
+    <td class="wrap"><b class="${r.buyer?r.buyer.cls:''}">${r.buyer?r.buyer.act:'—'}</b></td></tr>`;}).join('')}
+  </tbody></table></div>`;
+}
+
+/* ---------- Subscription tab ---------- */
+function renderSubs(g){
+  const list = ISSUES.filter(i=>(i.status==='open' || (i.status==='closed' && daysTo(i.close)>=-30)) && matches(i) && (latestSub(i)));
+  if(!list.length){ g.innerHTML='<div class="note">No live subscription data right now.</div>'; return; }
+  list.sort((a,b)=>(a.status===b.status?0:a.status==='open'?-1:1) || ((latestSub(b).times||0)-(latestSub(a).times||0)));
+  g.innerHTML = `<div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>Status</th><th>Close</th><th>Issue shares</th><th>Bid qty</th><th>Subscribed</th><th>Day-wise progression</th><th>As on</th></tr></thead><tbody>
+  ${list.map(it=>{ const s=latestSub(it); const h=(it.subsHistory||[]).filter(x=>x.times!=null);
+    const prog = dailySubs(h).map(x=>`${fd(x.at,false)}: ${x.times.toFixed(2)}×`).slice(-5).join(' → ');
+    return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b></td><td>${it.status}</td><td>${fd(it.close)}</td><td>${nf((it.subscription&&it.subscription.shares)||(it.detail&&it.detail.issueShares))}</td><td>${nf(s.bidQty)}</td><td><b class="${s.times>=1?'pos':'neg'}">${s.times!=null?s.times.toFixed(2)+'×':'—'}</b></td><td style="font-size:.7rem">${prog||'—'}</td><td>${fdt(s.at)}</td></tr>`;}).join('')}
+  </tbody></table></div>`;
+}
+/* last snapshot per calendar day */
+function dailySubs(h){
+  const by={}; (h||[]).forEach(x=>{ if(x.at && x.times!=null) by[x.at.slice(0,10)]=x; });
+  return Object.keys(by).sort().map(k=>by[k]);
+}
+
+/* ---------- Volume & H/L tab ---------- */
+function renderVol(g){
+  const list = ISSUES.filter(i=>i.stock && i.status!=='closed' && matches(i)).concat(ISSUES.filter(i=>i.stock && i.status==='closed' && matches(i)).slice(0,25));
+  if(!list.length){ g.innerHTML='<div class="note">No price/volume data available yet.</div>'; return; }
+  g.innerHTML = `<div class="widewrap"><table class="ft"><thead><tr><th>Company</th><th>CMP</th><th>Mkt cap</th><th>Vol (day)</th><th>Avg/day 1M</th><th>Avg/day 1Y</th><th>Avg / month</th><th>Avg / year</th><th>Day H / L</th><th>Month H / L</th><th>52W H / L</th><th>All-time H / L</th></tr></thead><tbody>
+  ${list.map(it=>{ const s=it.stock, v=s.volume, h=s.hl; const hl=x=>x?`${inr(x.high)} / ${inr(x.low)}`:'—';
+    return `<tr><td><b data-open="${it.id}">${esc(it.name)}</b><div style="font-size:.64rem;color:var(--muted)">${esc(s.symbol)} · ${it.status}</div></td><td>${inr(cmpOf(it))}</td><td>${mcapTxt(it.mcapCr)}</td><td>${compact(v.lastDay)}</td><td>${compact(v.avg1M)}</td><td>${compact(v.avg1Y)}</td><td>${compact(v.avgMonthly12M)}</td><td>${compact(v.avgYearly)}</td><td>${hl(h.day)}</td><td>${hl(h.month)}</td><td>${hl(h.w52)}</td><td>${hl(h.all)}</td></tr>`;}).join('')}
+  </tbody></table></div>`;
+}
+
+/* ---------- Calendar ---------- */
+function renderCal(g){
+  const ev = {};
+  const add = (d, tag, cls, it) => { if(!d) return; (ev[d] = ev[d]||[]).push({tag,cls,it}); };
+  const from = new Date(Date.parse(todayISO)-7*86400000).toISOString().slice(0,10);
+  ISSUES.filter(matches).forEach(it=>{
+    const dd=(it.detail&&it.detail.dates)||{};
+    add(dd.lastBuy,'Last day to buy','tg-buy',it);
+    add(it.record,'Record date','tg-rec',it);
+    add(it.open,'Opens','tg-open',it);
+    add(it.renunciation,'RE renunciation ends','tg-ren',it);
+    add(it.close,'Closes','tg-close',it);
+    add(dd.allotment,'Allotment','tg-allot',it);
+    add(dd.listing,'Listing','tg-allot',it);
+  });
+  const days = Object.keys(ev).filter(d=>d>=from).sort();
+  if(!days.length){ g.innerHTML='<div class="note">No upcoming rights issue events.</div>'; return; }
+  g.innerHTML = `<div class="calwrap">${days.map(d=>{ const [y,m,dd]=d.split('-');
+    const wd = new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'});
+    return `<div class="cday ${d===todayISO?'today':''}"><div class="dt"><div class="dd">${+dd}</div><div class="dm">${MON[+m-1]} · ${wd}</div></div>
+      <div class="evl">${ev[d].map(e=>`<div class="ev"><span class="tagx ${e.cls}">${e.tag}</span><b data-open="${e.it.id}">${esc(e.it.name)}</b><small style="color:var(--muted)">${inr(e.it.price)} · ${esc(e.it.ratio||'')}</small></div>`).join('')}</div></div>`;}).join('')}</div>`;
+}
+
+/* ================= detail overlay ================= */
+let chartRange = 260;
+function openDetail(id){
+  const it = ISSUES.find(i=>String(i.id)===String(id)); if(!it) return;
+  const d = it.detail||{}, m = math(it), v = verdict(it), st = it.stock, dd = d.dates||{};
+  const R = m.R;
+  const kv = (k,val)=>`<div class="fact"><div class="k">${k}</div><div class="v">${val}</div></div>`;
+  const reasons = [];
+  if(m.disc!=null) reasons.push([m.disc>=15?'g':m.disc>=0?'n':'b', `Issue price ${inr(m.P)} is ${Math.abs(m.disc).toFixed(1)}% ${m.disc>=0?'below':'above'} CMP ${inr(m.C)}.`]);
+  if(m.terp) reasons.push(['n', `Theoretical ex-rights price (TERP) ≈ ${inr(m.terp)}; fair value of one Rights Entitlement ≈ ${inr(m.reFair)}.`]);
+  if(m.dilution) reasons.push([m.dilution>50?'b':'n', `Equity expands by ${m.dilution.toFixed(1)}% if fully subscribed (${R.r} new for every ${R.h} held).`]);
+  if(m.reMkt!=null) reasons.push([m.reGap>0?'g':'b', `RE trades at ${inr(m.reMkt)} → buying RE + paying issue price costs ${inr(m.effCost)}, ${Math.abs(m.reGap).toFixed(1)}% ${m.reGap>0?'cheaper':'costlier'} than buying shares at CMP.`]);
+  const s = latestSub(it); if(s&&s.times!=null) reasons.push([s.times>=1?'g':'b', `Subscribed ${s.times.toFixed(2)}× as on ${fdt(s.at)}.`]);
+  if(st&&st.hl.w52&&m.P) reasons.push(['n', `52-week range ${inr(st.hl.w52.low)} – ${inr(st.hl.w52.high)}; issue price is ${Math.abs((m.P-st.hl.w52.low)/st.hl.w52.low*100).toFixed(0)}% ${m.P>=st.hl.w52.low?'above':'below'} the 52W low.`]);
+
+  const subsRows = dailySubs(it.subsHistory);
+  const allSubs = (it.subsHistory||[]).filter(x=>x.times!=null);
+  const tt = [
+    ['Last date to buy shares (cum-rights)', dd.lastBuy],
+    ['Record date', it.record||dd.record],
+    ['Credit of Rights Entitlements', dd.reCredit],
+    ['Issue opens', it.open],
+    ['Last date for renunciation (RE trading)', it.renunciation],
+    ['Issue closes', it.close],
+    ['Allotment (on or about)', dd.allotment],
+    ['Credit of shares', dd.credit],
+    ['Listing', dd.listing],
+  ];
+  const hlRow = (lbl,x)=> x?`<tr><td>${lbl}</td><td>${inr(x.high)}</td><td>${fd(x.highOn||x.on)}</td><td>${inr(x.low)}</td><td>${fd(x.lowOn||x.on)}</td></tr>`:'';
+  $('#dpanel').innerHTML = `
+    <div class="dhead">${it.logo?`<img class="cl" src="${esc(it.logo)}" alt="" onerror="this.style.display='none'">`:''}
+      <div style="min-width:0"><h2>${esc(it.name)}</h2><div class="sub">${esc(it.title)} · ${esc(symLine(it))}${d.isin?' · ISIN '+esc(d.isin):''}</div></div>
+      <button class="dclose" id="dclose" aria-label="Close">✕</button></div>
+    <div class="dbody">
+      <div class="verdict ${v.cls}"><div class="vscore">${v.score}</div><div class="vtxt"><div class="vt">${v.t}</div><div class="vs">${v.s}</div></div></div>
+
+      ${decisionHtml(it)}
+      ${calcSection(it)}
+      ${creditHtml(it)}
+      ${shpHtml(it)}
+
+      <div class="sect"><h3>Rights issue details <span class="rt">${statusPill(it)}</span></h3>
+        <div class="kgrid">
+          ${kv('Issue price', inr(it.price))}
+          ${kv('Face value', esc(d.faceValue||'—'))}
+          ${kv('Rights ratio (rights : held)', R?`${R.r} : ${R.h}`:esc(it.ratio||'—'))}
+          ${kv('Issue size', it.sizeCr!=null?'₹'+it.sizeCr+' Cr':esc(d.issueAmtTxt||'—'))}
+          ${kv('Issue size (shares)', nf(d.issueShares))}
+          ${kv('Listing at', esc(d.listingAt||'—'))}
+          ${kv('Terms of payment', esc(d.terms||'—'))}
+          ${kv('CMP (share)', inr(m.C)+(it.priceCheck?`<small> ${esc(it.priceCheck.used.src)}${it.priceCheck.used.asOf?', '+fd(it.priceCheck.used.asOf):''}</small>`:''))}
+          ${kv('Market cap', mcapTxt(it.mcapCr))}
+          ${kv('Shares outstanding', sharesTxt(it.sharesCr))}
+          ${kv('RE price (market)', inr(m.reMkt))}
+          ${kv('Discount to CMP', m.disc!=null?`<span class="${m.disc>=0?'pos':'neg'}">${m.disc.toFixed(1)}%</span>`:'—')}
+          ${kv('TERP', inr(m.terp))}
+          ${kv('RE fair value', inr(m.reFair))}
+          ${kv('Registrar', esc(d.registrar||'—'))}
+          ${kv('Lead manager', esc(d.leadManagers||'—'))}
+        </div>
+        ${d.entitlement?`<div class="small">Entitlement: ${esc(d.entitlement)}</div>`:''}
+      </div>
+
+      ${it.priceCheck?`<div class="sect"><h3>Price check <span class="rt">${(it.priceCheck.mismatch||[]).length?'<span class="neg">⚠ sources disagree</span>':'<span class="pos">✓ sources agree (±10%)</span>'}</span></h3>
+        <div class="tw"><table class="ft"><thead><tr><th>Source</th><th>Price</th><th>As of</th><th>vs used</th></tr></thead><tbody>
+        ${it.priceCheck.sources.map(s=>{const u=s===it.priceCheck.used||(s.src===it.priceCheck.used.src&&s.price===it.priceCheck.used.price);const bad=(it.priceCheck.mismatch||[]).some(x=>x.src===s.src);return `<tr class="${u?'hl':''}"><td>${esc(s.src)}${u?' (used)':''}${s.via?' · '+esc(s.via):''}${s.range?`<small> day range ${inr(s.range[0])}–${inr(s.range[1])}</small>`:''}${s.note?`<small> (${esc(s.note)})</small>`:''}</td><td>${inr(s.price)}</td><td>${s.asOf?fdt(s.asOf):'—'}</td><td class="${bad?'neg':''}">${u?'—':pct((s.price/it.priceCheck.used.price-1)*100)}${bad?' ⚠':''}</td></tr>`;}).join('')}
+        </tbody></table></div>
+        <div class="small">CMP = live exchange price when it lies inside today's traded range, otherwise the latest daily close. Other sources are cross-checks and are flagged when they differ by more than 10%. Market cap = ${esc(it.mcapBasis||'—')}.${it.priceCheck.reRejected!=null?` An RE quote of ${inr(it.priceCheck.reRejected)} was ignored because an RE can't be worth more than the share itself.`:''}</div></div>`:''}
+      <div class="sect"><h3>Analysis</h3><ul class="reasons">${reasons.map(r=>`<li class="${r[0]}">${r[1]}</li>`).join('')||'<li class="n">Waiting for price data.</li>'}</ul></div>
+
+      <div class="sect"><h3>Timetable</h3><div class="tw"><table class="ft"><thead><tr><th>Event</th><th>Date</th><th>Days</th></tr></thead><tbody>
+        ${tt.map(([k,x])=>{ const n=daysTo(x); return `<tr class="${x===todayISO?'hl':''}"><td>${k}</td><td>${x?fd(x):'—'}</td><td>${n==null?'':n===0?'Today':n>0?'in '+n+'d':Math.abs(n)+'d ago'}</td></tr>`;}).join('')}
+      </tbody></table></div></div>
+
+      <div class="sect"><h3>Subscription status — date wise <span class="rt">${s&&s.times!=null?s.times.toFixed(2)+'× latest':''}</span></h3>
+        ${subsRows.length?`${subsChart(subsRows)}<div class="tw"><table class="ft"><thead><tr><th>Date</th><th>Bid quantity</th><th>Subscribed</th><th>Change</th></tr></thead><tbody>
+        ${subsRows.map((x,i)=>{ const p=i?subsRows[i-1].times:0; return `<tr><td>${fdt(x.at)}</td><td>${nf(x.bidQty)}</td><td><b>${x.times.toFixed(2)}×</b></td><td class="${x.times-p>=0?'pos':'neg'}">${i?'+'+(x.times-p).toFixed(2)+'×':''}</td></tr>`;}).join('')}
+        </tbody></table></div>${allSubs.length>subsRows.length?`<div class="small">${allSubs.length} intraday snapshots captured; table shows the last snapshot of each day.</div>`:''}`
+        :`<div class="small">${it.status==='upcoming'?'Subscription data appears once the issue opens on '+fd(it.open)+'.':'No subscription data published.'}</div>`}
+      </div>
+
+      ${st?`
+      <div class="sect"><h3>Price &amp; volume <span class="rt">${esc(st.symbol)} · ${esc(st.exchange||'')} · as of ${fd(st.asOf)}</span></h3>
+        <div class="seg" id="rngSeg">${[[22,'1M'],[66,'3M'],[130,'6M'],[260,'1Y']].map(([n,l])=>`<button data-n="${n}" class="${n===chartRange?'active':''}">${l}</button>`).join('')}</div>
+        <div id="pchart"></div><div class="ctip" id="ctip">Hover/tap the chart for daily values. Dashed line = issue price.</div>
+      </div>
+
+      <div class="sect"><h3>Volume — day / month / year averages</h3>
+        <div class="kgrid">
+          ${kv('Last day volume', nf(st.volume.lastDay))}
+          ${kv('Avg daily · 5D', nf(st.volume.avg5D))}
+          ${kv('Avg daily · 1M', nf(st.volume.avg1M))}
+          ${kv('Avg daily · 3M', nf(st.volume.avg3M))}
+          ${kv('Avg daily · 1Y', nf(st.volume.avg1Y))}
+          ${kv('Avg daily · all-time', nf(st.volume.avgAll))}
+          ${kv('Avg monthly volume (12M)', nf(st.volume.avgMonthly12M))}
+          ${kv('Avg yearly volume', nf(st.volume.avgYearly))}
+          ${kv('This month so far', nf(st.volume.thisMonth))}
+          ${kv('This year so far', nf(st.volume.thisYear))}
+          ${kv('Highest day volume', nf(st.volume.maxDay)+`<small> ${fd(st.volume.maxDayOn)}</small>`)}
+          ${kv('Last day vs 1M avg', st.volume.avg1M?(st.volume.lastDay/st.volume.avg1M).toFixed(2)+'×':'—')}
+        </div>
+      </div>
+
+      <div class="sect"><h3>Highs &amp; lows</h3><div class="tw"><table class="ft"><thead><tr><th>Period</th><th>High</th><th>On</th><th>Low</th><th>On</th></tr></thead><tbody>
+        ${hlRow('Day ('+fd(st.hl.day.on)+')', st.hl.day)}${hlRow('1 Week', st.hl.week)}${hlRow('1 Month (30 days)', st.hl.month)}
+        ${hlRow('This calendar month', st.hl.calMonth)}${hlRow('3 Months', st.hl.m3)}${hlRow('52 Weeks', st.hl.w52)}
+        ${hlRow('This calendar year', st.hl.calYear)}${hlRow('All time (since '+fd(st.firstTrade)+')', st.hl.all)}
+      </tbody></table></div></div>
+
+      <div class="sect"><h3>Monthly — high / low / volume <span class="rt">last ${Math.min(24,st.monthly.length)} months</span></h3><div class="tw"><table class="ft"><thead><tr><th>Month</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Total vol</th><th>Avg/day</th><th>Days</th></tr></thead><tbody>
+        ${st.monthly.slice().reverse().map(x=>{const [y,mm]=x.m.split('-'); return `<tr><td>${MON[+mm-1]} ${y}</td><td>${inr(x.o)}</td><td>${inr(x.h)}</td><td>${inr(x.l)}</td><td>${inr(x.c)}</td><td>${compact(x.v)}</td><td>${compact(x.avgV)}</td><td>${x.n}</td></tr>`;}).join('')}
+      </tbody></table></div></div>
+
+      <div class="sect"><h3>Yearly — high / low / volume</h3><div class="tw"><table class="ft"><thead><tr><th>Year</th><th>High</th><th>Low</th><th>Close</th><th>Total vol</th><th>Avg/day</th><th>Avg/month</th></tr></thead><tbody>
+        ${st.yearly.slice().reverse().map(x=>`<tr><td>${x.y}</td><td>${inr(x.h)}</td><td>${inr(x.l)}</td><td>${inr(x.c)}</td><td>${compact(x.v)}</td><td>${compact(x.avgV)}</td><td>${compact(x.v/Math.max(1,Math.round(x.n/21)))}</td></tr>`).join('')}
+      </tbody></table></div></div>`
+      :`<div class="sect"><h3>Price &amp; volume</h3><div class="small">Price history not available for this company yet (needs an NSE symbol or BSE scrip code).</div></div>`}
+
+      ${it.re&&it.re.daily&&it.re.daily.length?`
+      <div class="sect"><h3>Rights Entitlement (RE) trading <span class="rt">${esc(it.re.symbol)}</span></h3>
+        <div class="kgrid">${kv('RE LTP', inr(it.re.ltp))}${kv('RE high', inr(it.re.hl&&it.re.hl.high))}${kv('RE low', inr(it.re.hl&&it.re.hl.low))}${kv('Total RE volume', nf(it.re.totalVol))}${kv('Avg RE vol/day', nf(it.re.avgVol))}</div>
+        <div class="tw" style="margin-top:10px"><table class="ft"><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody>
+        ${it.re.daily.slice().reverse().map(c=>`<tr><td>${fd(c[0])}</td><td>${inr(c[1])}</td><td>${inr(c[2])}</td><td>${inr(c[3])}</td><td>${inr(c[4])}</td><td>${nf(c[5])}</td></tr>`).join('')}
+        </tbody></table></div></div>`:''}
+
+      ${d.objects&&d.objects.length?`<div class="sect"><h3>Objects of the issue</h3><div class="tw"><table class="ft"><thead><tr><th>Object</th><th>₹ Cr</th></tr></thead><tbody>${d.objects.map(o=>`<tr><td style="white-space:normal">${esc(o.obj)}</td><td>${o.amt??'—'}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+
+      <div class="sect"><h3>Links</h3><div class="links">
+        <a href="${esc(it.cgUrl)}" target="_blank" rel="noopener">Chittorgarh detail ↗</a>
+        ${d.letterOfOffer?`<a href="${esc(d.letterOfOffer)}" target="_blank" rel="noopener">Letter of Offer ↗</a>`:''}
+        ${d.registrarSite?`<a href="${esc(d.registrarSite)}" target="_blank" rel="noopener">Registrar ↗</a>`:''}
+        ${d.allotmentUrl?`<a href="${esc(d.allotmentUrl)}" target="_blank" rel="noopener">Allotment status ↗</a>`:''}
+        ${d.bse?`<a href="https://www.bseindia.com/stock-share-price/x/x/${esc(d.bse)}/" target="_blank" rel="noopener">BSE quote ↗</a>`:''}
+        ${d.nse?`<a href="https://www.nseindia.com/get-quotes/equity?symbol=${encodeURIComponent(d.nse)}" target="_blank" rel="noopener">NSE quote ↗</a>`:''}
+        ${d.website?`<a href="${esc(d.website)}" target="_blank" rel="noopener">Company site ↗</a>`:''}
+      </div></div>
+    </div>`;
+  $('#dov').classList.add('show'); document.body.style.overflow='hidden';
+  $('#dclose').onclick = closeDetail;
+  calcBind(it);
+  if(st){ drawChart(it); $('#rngSeg').onclick = e=>{ const b=e.target.closest('button'); if(!b) return; chartRange=+b.dataset.n; $('#rngSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); drawChart(it); }; }
+}
+function decisionHtml(it){
+  const r = rate(it), m = r.m;
+  if(r.score==null) return `<div class="sect"><h3>Should I opt for this RE?</h3><div class="small">Rating appears once the issue price and market price are both known.</div></div>${LEARN}`;
+  const R = m.R, held = R ? R.h*Math.max(1,Math.round(100/R.h)) : 100, ent = R ? Math.floor(held*R.r/R.h) : 0;
+  const ex = ent ? `
+    <h4 style="font-size:.78rem;margin:14px 0 6px">Worked example: you hold ${nf(held)} shares → ${nf(ent)} REs</h4>
+    <div class="tw"><table class="ft"><thead><tr><th>Choice</th><th>You pay</th><th>You get (at today's price)</th><th>Net ₹ vs doing nothing</th></tr></thead><tbody>
+      <tr class="${r.holder.act.startsWith('Apply')?'hl':''}"><td>Apply for all ${nf(ent)}</td><td>${inr(ent*m.P,0)}</td><td>${nf(ent)} shares ≈ ${inr(ent*m.C,0)}</td><td class="${m.C>=m.P?'pos':'neg'}">${inr(ent*(m.C-m.P),0)}</td></tr>
+      <tr class="${/Sell/.test(r.holder.act)?'hl':''}"><td>Sell all ${nf(ent)} REs</td><td>₹0</td><td>${m.reMkt!=null?inr(ent*m.reMkt,0)+' cash':'RE price × '+nf(ent)}</td><td class="pos">${m.reMkt!=null?inr(ent*m.reMkt,0):'≈ '+inr(ent*Math.max(0,m.reFair),0)+' at fair value'}</td></tr>
+      <tr><td>Do nothing (RE lapses)</td><td>₹0</td><td>Nothing; your stake is diluted</td><td class="neg">${inr(0,0)} (you give up ${inr(ent*Math.max(0,m.reFair),0)})</td></tr>
+    </tbody></table></div>
+    <div class="small">If the share falls ${r.expMove!=null?r.expMove.toFixed(1)+'% (one typical move over the waiting period)':'10%'} before listing, applying would be worth ${inr(ent*(m.C*(1-(r.expMove??10)/100)-m.P),0)} instead. Break-even share price at listing = issue price ${inr(m.P)}.</div>` : '';
+  return `<div class="sect"><h3>Should I opt for this RE? <span class="rt">${starsHtml(r.stars)} <b>${r.score}/100 · ${r.label}</b></span></h3>
+    <div class="dec">
+      <div class="dbox ${r.holder.cls}"><div class="who">If you hold the shares (you received REs)</div><div class="act">${r.holder.act}</div><div class="why">${r.holder.why}</div></div>
+      <div class="dbox ${r.buyer.cls}"><div class="who">If you don't hold: buy REs in the market?</div><div class="act">${r.buyer.act}</div><div class="why">${r.buyer.why}</div></div>
+    </div>
+    <div class="kgrid" style="margin-top:10px">
+      <div class="fact"><div class="k">RE fair value</div><div class="v">${inr(m.reFair)}<small> ${m.exRights?'CMP − issue':'TERP − issue'}</small></div></div>
+      <div class="fact"><div class="k">RE market price</div><div class="v">${inr(m.reMkt)}${m.reMkt!=null&&m.reFair>0?`<small class="${m.reMkt<=m.reFair?'pos':'neg'}"> ${((m.reMkt/m.reFair-1)*100).toFixed(0)}% vs fair</small>`:''}</div></div>
+      <div class="fact"><div class="k">Max sensible RE buy price</div><div class="v">${inr(r.maxReBuy)}</div></div>
+      <div class="fact"><div class="k">Effective cost via RE</div><div class="v">${inr(m.effCost)}</div></div>
+      <div class="fact"><div class="k">Safety cushion</div><div class="v">${r.cushionSigma!=null?r.cushionSigma.toFixed(2)+'σ':'—'}</div></div>
+      <div class="fact"><div class="k">Chance below issue price at listing</div><div class="v">${probTxt(r.probLoss)}</div></div>
+      <div class="fact"><div class="k">Typical move till listing</div><div class="v">${r.expMove!=null?'±'+r.expMove.toFixed(1)+'%':'—'}<small> ~${r.daysAtRisk} trading days</small></div></div>
+      <div class="fact"><div class="k">Annual volatility</div><div class="v">${r.vs?(r.vs.annVol*100).toFixed(0)+'%':'—'}</div></div>
+    </div>
+    ${it.detail&&it.detail.terms&&!/full/i.test(it.detail.terms)?`<div class="small" style="color:var(--amber)">⚠ <b>Partly-paid issue (${esc(it.detail.terms)}):</b> you pay part of ${inr(m.P)} now and the rest on later "calls". Until then you hold partly-paid shares, which trade under a separate code, often at a discount and with lower liquidity. The ₹ maths here uses the full issue price.</div>`:''}
+    <div class="sc-head"><div class="big">${r.score}<small>/100</small></div><div class="lbl">${starsHtml(r.stars)} ${r.label}<div>Scorecard: 7 factors, points shown against their maximum</div></div></div>
+    <div class="tw"><table class="ft sc"><thead><tr><th>Factor</th><th>Value</th><th>Points</th><th style="text-align:left">Why</th></tr></thead><tbody>
+      ${r.factors.map(f=>{const q=f.max?f.pts/f.max:0;const c=q>=0.7?'hi':q>=0.4?'mid':'lo';const col=q>=0.7?'#16a34a':q>=0.4?'#d97706':'#dc2626';
+        return `<tr><td>${f.name}</td><td>${f.value}</td><td><span class="ptsv pt-${c}">${f.pts} / ${f.max}</span><div class="pbar2"><i style="width:${Math.round(q*100)}%;background:${col}"></i></div></td><td class="wrap">${f.why}</td></tr>`;}).join('')}
+      <tr class="tot"><td>Total score</td><td></td><td>${r.score} / 100</td><td class="wrap">${starsHtml(r.stars)} ${r.label}${m.disc<=0?' (capped at 25 because the issue price is not below the market)':''}${r.capNote?' · '+r.capNote:''}</td></tr>
+    </tbody></table></div>
+    ${ex}
+    <div class="small">Rules-based screen on public data for education. Not investment advice. Prices move during the day; re-check the RE and share price before acting.</div>
+  </div>${LEARN}`;
+}
+function shpHtml(it){
+  const sh = shpOf(it);
+  if(!sh) return `<div class="sect"><h3>Shareholders &amp; shareholding pattern</h3><div class="small">Not available yet (refreshes daily with the company's quarterly filing data).</div></div>`;
+  const COL = {Promoters:'#6d28d9', FIIs:'#2563eb', DIIs:'#0891b2', Government:'#64748b', Public:'#f59e0b', Others:'#9ca3af'};
+  const cats = Object.keys(COL).filter(k=>sh.rows[k]);
+  const latest = cats.map(k=>[k, sh.last(k)||0]);
+  const holders = sh.rows.Shareholders||[];
+  const n = sh.q.length, show = Math.min(n, 6), qs = sh.q.slice(-show);
+  const row = (k, fmt) => { const v=(sh.rows[k]||[]).slice(-show); return `<tr><td>${k==='Shareholders'?'<b>No. of shareholders</b>':`<b style="color:${COL[k]}">●</b> ${k}`}</td>${v.map(x=>`<td>${x==null?'—':fmt(x)}</td>`).join('')}<td class="${(v[v.length-1]??0)-(v[v.length-2]??0)>=0?'pos':'neg'}">${v.length>1&&v[v.length-1]!=null&&v[v.length-2]!=null?((v[v.length-1]-v[v.length-2]>=0?'+':'')+fmt(v[v.length-1]-v[v.length-2])):'—'}</td></tr>`; };
+  const ah = holders.length ? holders[holders.length-1] : null, a4 = holders.length>4 ? holders[holders.length-5] : null;
+  return `<div class="sect"><h3>Shareholders &amp; shareholding pattern <span class="rt">as of ${esc(sh.asOf||'')}</span></h3>
+    <div class="keyrow" style="margin-bottom:10px">
+      <div><div class="k">Shareholders</div><div class="v">${ah!=null?nf(ah):'—'}</div></div>
+      <div><div class="k">Change in 1 year</div><div class="v">${ah!=null&&a4?`${ah>=a4?'+':''}${nf(ah-a4)} <small>(${pct((ah/a4-1)*100,0)})</small>`:'—'}</div></div>
+      <div><div class="k">Promoter holding</div><div class="v">${sh.last('Promoters')!=null?sh.last('Promoters').toFixed(2)+'%':'—'}</div></div>
+    </div>
+    <div class="shpbar">${latest.map(([k,v])=>`<i title="${k} ${v}%" style="width:${v}%;background:${COL[k]}"></i>`).join('')}</div>
+    <div class="shplg">${latest.map(([k,v])=>`<span><b style="background:${COL[k]}"></b>${k} ${v.toFixed(2)}%</span>`).join('')}</div>
+    <div class="tw" style="margin-top:10px"><table class="ft"><thead><tr><th>Category</th>${qs.map(q=>`<th>${esc(q)}</th>`).join('')}<th>QoQ</th></tr></thead><tbody>
+      ${cats.map(k=>row(k, x=>x.toFixed(2)+'%')).join('')}
+      ${holders.length?row('Shareholders', x=>nf(x)):''}
+    </tbody></table></div>
+    <div class="small">From the quarterly shareholding pattern each listed company files with NSE/BSE (via Screener.in). The shareholder count is the number of holders the company reports (the exchange format consolidates holdings by PAN). A fast-rising count often means more retail interest; a falling promoter stake before a rights issue is worth questioning.</div>
+  </div>`;
+}
+function creditHtml(it){
+  const c = it.credit, ca = creditAssess(it);
+  if(!c) return `<div class="sect"><h3>Credit rating &amp; default check</h3><div class="small">Not fetched yet for this company: credit data refreshes once a day for open, upcoming and recent issues.</div></div>`;
+  const rt = c.rating, f = c.fin||{};
+  const kv = (k,v)=>`<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const TL = {default:['Debt servicing','cr-bad'], insolvency:['Insolvency','cr-bad'], ots:['Settlement','cr-bad'], npa:['NPA/SMA','cr-sub']};
+  const issueVsMcap = it.sizeCr && it.mcapCr ? it.sizeCr/it.mcapCr*100 : null;
+  return `<div class="sect"><h3>Credit rating &amp; default check <span class="rt">${creditPills(it)}</span></h3>
+    <div class="kgrid">
+      ${kv('Current rating', rt&&rt.grade?`${esc(rt.agency||'')} ${esc(rt.grade)}`:esc(ca.badge))}
+      ${kv('Outlook', rt&&rt.outlook?esc(rt.outlook):'—')}
+      ${kv('Rated on', rt&&rt.when?esc(rt.when):'—')}
+      ${kv('Default record', ca.defaultFlag?'<span class="neg">Yes ⚠</span>':'<span class="pos">None found</span>')}
+      ${kv('Issuer not cooperating', rt&&rt.inc?'<span class="neg">Yes</span>':c.incHistory?'In history':'No')}
+      ${kv('Credit points', `${ca.pts}/20`)}
+      ${kv('Net worth', f.netWorth!=null?`<span class="${f.netWorth<0?'neg':''}">₹${nf(f.netWorth)} Cr</span>`:'—')}
+      ${kv('Borrowings', f.borrowings!=null?'₹'+nf(f.borrowings)+' Cr':'—')}
+      ${kv('Debt / equity', f.debtEquity!=null?f.debtEquity+'×':'—')}
+      ${kv('Interest cover', f.icr!=null?`<span class="${f.icr<1.5?'neg':f.icr>=3?'pos':''}">${f.icr}×</span>`:f.financialCo?'n/a (lender)':'—')}
+      ${kv('Promoter pledge', c.pledgePct!=null?c.pledgePct+'%':'None reported')}
+      ${kv('Market cap', mcapTxt(it.mcapCr))}
+      ${kv('Issue size vs market cap', issueVsMcap!=null?issueVsMcap.toFixed(0)+'%':'—')}
+    </div>
+    <ul class="reasons" style="margin-top:10px">${ca.notes.map(n=>`<li class="${/default|Negative|negative|pledged|INC|Not Cooperating|insolvency|settlement|debt\/equity|Weak/i.test(n)?'b':'n'}">${n}</li>`).join('')}</ul>
+    ${(c.pastDefaults&&c.pastDefaults.length)||(c.flags&&c.flags.length)?`<h4 style="font-size:.78rem;margin:14px 0 6px">Evidence from rating documents</h4><ul class="ev-list">
+      ${(c.pastDefaults||[]).slice(0,5).map(d=>`<li><span class="tg cr-bad">Rated D</span>${esc(d.raw||'D')} ${d.date?'on '+esc(d.date):''} (${esc(d.agency||'')}) <a href="${esc(d.url)}" target="_blank" rel="noopener">source ↗</a></li>`).join('')}
+      ${(c.flags||[]).slice(0,8).map(x=>`<li><span class="tg ${(TL[x.type]||['',''])[1]}">${(TL[x.type]||[x.type])[0]}</span>“${esc(x.text)}” <span style="color:var(--muted)">(${esc(x.agency||'')}, ${esc(x.when||'')})</span> <a href="${esc(x.url)}" target="_blank" rel="noopener">source ↗</a></li>`).join('')}
+    </ul>`:''}
+    ${c.docs&&c.docs.length?`<h4 style="font-size:.78rem;margin:14px 0 6px">Rating history (latest first)</h4><div class="tw"><table class="ft"><thead><tr><th>Date</th><th>Agency</th><th>Rating</th><th>Document</th></tr></thead><tbody>
+      ${c.docs.map(d=>`<tr><td>${esc(d.when||'')}</td><td>${esc(d.agency||'')}</td><td>${d.grade?`<b class="${d.grade==='D'?'neg':''}">${esc(d.raw||d.grade)}</b>${d.outlook?' · '+esc(d.outlook):''}${d.inc?' · INC':''}`:d.withdrawn?'Withdrawn':d.unreadable?'Could not read':d.notRead?'Not read':'—'}</td><td><a href="${esc(d.url)}" target="_blank" rel="noopener">Open ↗</a></td></tr>`).join('')}
+    </tbody></table></div>`:''}
+    ${c.cons&&c.cons.length?`<h4 style="font-size:.78rem;margin:14px 0 6px">Red flags (Screener checklist)</h4><ul class="reasons">${c.cons.map(x=>`<li class="b">${esc(x)}</li>`).join('')}</ul>`:''}
+    <div class="small">Sources: <a href="${esc(c.screenerUrl)}" target="_blank" rel="noopener">Screener.in</a> (financials, rating documents list) and the rating agencies' published rationales. Default history covers what agencies report (usually the last 3 years); a company with no rating may still have defaulted on loans that weren't rated, so read the Letter of Offer's "Risk factors" and "Outstanding litigation and defaults" sections too. Checked ${new Date(c.fetchedAt*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}.</div>
+  </div>`;
+}
+/* ================= Investment calculator (per issue) =================
+   Everything except the amount is pre-filled from live data and editable. Routes modelled:
+   (1) apply for your entitlement (if you hold shares on the record date),
+   (2) buy REs in the market and apply for them (cost per share = RE price + issue price),
+   (3) apply for additional shares with leftover cash: allotted only from the unsubscribed
+       portion, so the expected allotment % falls as the subscription rises; the rest is refunded. */
+const CALC = {};   // id -> {defaults, inputs, out}
+function calcDefaults(it){
+  const r = rate(it), m = r.m, R = m.R || {r:1, h:1}, s = latestSub(it);
+  const subs = s && s.times!=null ? +s.times.toFixed(2) : 1;
+  const reAssumed = m.reMkt==null;
+  const re = m.reMkt!=null ? m.reMkt : (m.reFair!=null ? +(m.reFair*0.85).toFixed(2) : 0);
+  const exit = m.exRights ? m.C : (m.terp || m.C);
+  const listing = (it.detail&&it.detail.dates&&it.detail.dates.listing) || (it.close ? new Date(Date.parse(it.close)+14*86400000).toISOString().slice(0,10) : null);
+  const days = Math.max(7, daysTo(listing) || 21);
+  const terms = it.detail && it.detail.terms;
+  // REs can be bought on the exchange only between the issue opening and the renunciation date
+  const reOpen = !!(it.renunciation && todayISO <= it.renunciation && (!it.open || todayISO >= it.open));
+  return { ownRE: 0, ownRECost: 0, buyRE: reOpen, reOpen, renunciation: it.renunciation, closeDate: it.close, amt: 0, held: 0, cmp: m.C, price: it.price, rr: R.r, rh: R.h, re: re, exit: +(+exit||0).toFixed(2),
+    subs, addPct: subs>=1 ? 0 : Math.round((1-subs)*50), fee: 0.15, payNow: terms && !/full/i.test(terms) ? 50 : 100,
+    days, useAdd: true, reAssumed, listing, ratioKnown: !!m.R };
+}
+function calcRun(i){
+  const f = (+i.fee||0)/100, P = +i.price||0, RE = Math.max(0,+i.re||0), X = +i.exit||0, A = Math.max(0,+i.amt||0);
+  const rr = +i.rr||0, rh = +i.rh||1;
+  const o = {ok: P>0 && A>0};
+  o.fromHeld = Math.floor((+i.held||0) * rr / rh);
+  o.ownRE = Math.max(0, Math.floor(+i.ownRE||0));
+  o.ownRECost = o.ownRE * (+i.ownRECost||0);               // already paid for REs you own
+  o.entitled = o.fromHeld + o.ownRE;
+  o.entApply = Math.min(o.entitled, Math.floor(A / P || 0));
+  o.entCost = o.entApply * P;
+  let cash = A - o.entCost;
+  o.unitRE = RE*(1+f) + P;
+  o.nRE = i.buyRE && o.entApply===o.entitled && o.unitRE>0 ? Math.floor(cash / o.unitRE) : 0;
+  o.reCost = o.nRE * RE * (1+f); o.rePay = o.nRE * P;
+  cash -= o.reCost + o.rePay;
+  // additional shares can be applied for only after applying for the full entitlement
+  o.addApplied = (i.useAdd && o.entApply===o.entitled && (o.entApply + o.nRE) > 0 && P>0) ? Math.floor(cash / P) : 0;
+  o.renouncee = (+i.held||0)===0 && (o.ownRE + o.nRE) > 0;
+  o.addAllot = Math.floor(o.addApplied * (Math.max(0, Math.min(100, +i.addPct||0)) / 100));
+  o.addCost = o.addAllot * P;
+  o.refund = o.addApplied*P - o.addCost;
+  o.unused = cash - o.addApplied*P;
+  o.shares = o.entApply + o.nRE + o.addAllot;
+  o.newMoney = o.entCost + o.reCost + o.rePay + o.addCost;      // from the amount entered
+  o.invested = o.newMoney + o.ownRECost;                           // total cost incl. REs already bought
+  o.payNow = o.entCost*(+i.payNow/100) + o.reCost + o.rePay*(+i.payNow/100) + o.addCost*(+i.payNow/100);
+  o.payLater = o.invested - o.payNow;
+  o.valueGross = o.shares * X; o.sellCost = o.valueGross * f; o.valueNet = o.valueGross - o.sellCost;
+  o.profit = o.valueNet - o.invested;
+  o.ret = o.invested ? o.profit / o.invested * 100 : 0;
+  o.annual = o.invested && i.days>0 && o.ret>-100 ? (Math.pow(1+o.ret/100, 365/i.days)-1)*100 : null;
+  o.avgCost = o.shares ? o.invested / o.shares : 0;
+  o.breakeven = o.shares ? o.invested / (o.shares*(1-f)) : 0;
+  o.mktCost = o.shares * (+i.cmp||0) * (1+f);
+  o.blocked = o.entCost + o.rePay + o.addApplied*P;               // ASBA amount blocked on application
+  o.released = o.refund + o.unused;           // buying the same shares in the market today
+  o.saving = o.mktCost - o.invested;
+  o.sellReAlt = i.reOpen ? o.entitled * RE * (1-f) : 0;                  // holder: sell REs instead of applying
+  o.scen = [-20,-10,0,10,20].map(p=>{ const px = X*(1+p/100), v = o.shares*px*(1-f); return {p, px, value:v, profit:v-o.invested, ret:o.invested?(v-o.invested)/o.invested*100:0}; });
+  o.scenIssue = (()=>{ const v=o.shares*P*(1-f); return {px:P, value:v, profit:v-o.invested}; })();
+  return o;
+}
+function calcSteps(it, i, o){
+  const S = [];
+  const inr0 = v=>inr(v,0);
+  if(i.closeDate===todayISO) S.push(['⏰ Today is the last day to apply', `The issue closes today. Banks stop accepting ASBA / net-banking rights applications at their own cut-off time (often earlier than the exchange's 5 pm), so apply as early as possible.`, null]);
+  if(!i.reOpen && i.renunciation && todayISO > i.renunciation) S.push(['RE trading has ended', `REs could be bought or sold on the exchange only until <b>${fd(i.renunciation)}</b>. You can no longer buy more REs, so new money can only go into <b>additional shares</b>.`, null]);
+  if(o.ownRE>0) S.push(['REs you already own', `You own <b>${nf(o.ownRE)} REs</b>${+i.ownRECost?` bought at <b>${inr(i.ownRECost)}</b> each (${inr(o.ownRECost,0)} already spent)`:''}. Each lets you buy 1 share at ${inr(i.price)}, so your all-in cost for these is <b>${inr((+i.ownRECost||0)+(+i.price))}</b> per share.`, o.ownRECost||null]);
+  if(+i.held>0) S.push(['You already hold shares', `You held <b>${nf(i.held)}</b> shares on the record date. The ratio is <b>${i.rr}:${i.rh}</b> (${i.rr} new share${i.rr>1?'s':''} for every ${i.rh} held), so you received <b>${nf(o.entitled)} REs</b> = ${nf(i.held)} × ${i.rr} ÷ ${i.rh}, rounded down.`, null]);
+  if(o.entApply>0) S.push(['Apply for your entitlement', `Pay the issue price <b>${inr(i.price)}</b> for each of your ${nf(o.entApply)} REs.`, o.entCost]);
+  if(o.nRE>0) S.push(['Buy REs in the market', `${o.entApply>0?'With the money left':'You don\'t hold the shares, so'} buy <b>${nf(o.nRE)} REs</b> on the exchange at <b>${inr(i.re)}</b> each (+${i.fee}% charges)${i.reAssumed?' (no live RE quote yet: price assumed at 85% of fair value, edit it)':''}.`, o.reCost]);
+  if(o.nRE>0) S.push(['Apply using those REs', `Each RE lets you buy one new share at <b>${inr(i.price)}</b>. Your all-in cost per share = RE ${inr(i.re)} + issue ${inr(i.price)}${+i.fee?` + charges`:''} = <b>${inr(o.unitRE)}</b>.`, o.rePay]);
+  if(o.addApplied>0) S.push(['Apply for additional shares', `Leftover money lets you apply for <b>${nf(o.addApplied)}</b> extra shares (${nf(o.addApplied)} × ${inr(i.price)} = ${inr0(o.addApplied*i.price)} blocked in your bank). These come only from the part of the issue others don't take up. At <b>${i.subs}×</b> subscription you assumed <b>${i.addPct}%</b> gets allotted → <b>${nf(o.addAllot)}</b> shares. The rest, <b>${inr0(o.refund)}</b>, is unblocked after allotment.${i.subs>=1?' Because the issue is already more than fully subscribed, expect little or nothing here.':''}${o.renouncee?' <b>Note:</b> you hold REs but not the shares (a "renouncee"). In the usual basis of allotment, additional shares go first to original shareholders, and renouncees get them only if anything is left.':''}`, o.addCost]);
+  if(o.unused>=1) S.push(['Money not used', `${inr0(o.unused)} stays with you (less than the price of one share).`, null]);
+  if(o.blocked>0 && o.released>=1) S.push(['Money blocked vs actually used', `On applying, <b>${inr0(o.blocked)}</b> is blocked in your bank account (ASBA). After allotment only <b>${inr0(o.newMoney)}</b> is debited and <b>${inr0(o.released)}</b> is released back to you.`, null]);
+  S.push(['Shares you receive', `<b>${nf(o.shares)} shares</b> credited to your demat around <b>${fd(i.listing)}</b> (about ${i.days} days from now). Average cost <b>${inr(o.avgCost)}</b> per share.`, o.invested]);
+  S.push(['Sell at the expected price', `If the share trades at <b>${inr(i.exit)}</b> when you sell: ${nf(o.shares)} × ${inr(i.exit)} = ${inr0(o.valueGross)}, minus ${i.fee}% charges = <b>${inr0(o.valueNet)}</b>.`, o.valueNet]);
+  S.push([o.profit>=0?'Your expected profit':'Your expected loss', `${inr0(o.valueNet)} − ${inr0(o.invested)} invested = <b class="${o.profit>=0?'pos':'neg'}">${inr0(o.profit)}</b> (${pct(o.ret,1)} in ~${i.days} days${o.annual!=null&&i.days>=60&&Math.abs(o.annual)<1e4?`, ≈${pct(o.annual,0)} a year`:''}).`, o.profit]);
+  S.push(['Break-even price', `You lose money only if the share falls below <b>${inr(o.breakeven)}</b> by the time you sell. That is ${i.exit?pct((o.breakeven/i.exit-1)*100,1):'—'} from the expected price.`, null]);
+  if(o.shares && +i.cmp) S.push(['Versus buying in the market', `Buying the same ${nf(o.shares)} shares today at ${inr(i.cmp)} would cost ${inr0(o.mktCost)}. The rights route ${o.saving>=0?'saves':'costs'} <b class="${o.saving>=0?'pos':'neg'}">${inr0(Math.abs(o.saving))}</b> ${o.saving>=0?'':'more'}.`, o.saving]);
+  if(o.entitled>0 && i.reOpen) S.push(['Alternative: sell your REs', `Instead of applying, selling your ${nf(o.entitled)} REs at ${inr(i.re)} would bring about <b>${inr0(o.sellReAlt)}</b> now, with no further price risk.`, o.sellReAlt]);
+  return S;
+}
+const CALC_FIELDS = [
+  ['ownRE','REs you already own','bought in the market (or received)'],
+  ['ownRECost','Price you paid per RE (₹)','0 if received as a shareholder'],
+  ['held','Shares you held on record date','only if REs not entered above'],
+  ['cmp','Current market price (₹)','live / last close'],
+  ['price','Issue price (₹)','from the offer'],
+  ['rr','Ratio: new shares','rights side of ratio'],
+  ['rh','Ratio: for every … held','held side of ratio'],
+  ['re','RE market price (₹)','price to buy 1 RE'],
+  ['exit','Expected selling price (₹)','default = CMP (ex-rights)'],
+  ['subs','Expected subscription (×)','latest; issues often finish higher'],
+  ['addPct','Additional shares allotted (%)','0% if issue is fully subscribed'],
+  ['fee','Trading charges per side (%)','brokerage + STT + fees'],
+  ['payNow','Payable on application (%)','100 = fully paid'],
+  ['days','Days until you can sell','till credit/listing'],
+];
+function calcSection(it){
+  const d = calcDefaults(it); CALC[it.id] = {d, i:{...d}};
+  if(!it.price || !d.cmp) return `<div class="sect" id="calcSect"><h3>💰 Investment calculator</h3><div class="small">Available once the issue price and market price are known.</div></div>`;
+  return `<div class="sect calc2" id="calcSect"><h3>💰 Investment calculator <span class="rt">enter your amount; everything else is pre-filled and editable</span></h3>
+    <div class="amtrow">
+      <label for="ic-amt">Amount you can invest (₹)</label>
+      <input id="ic-amt" inputmode="numeric" placeholder="e.g. 1,00,00,000" autocomplete="off">
+      <div class="chips">${[[1e5,'₹1 L'],[5e5,'₹5 L'],[25e5,'₹25 L'],[1e7,'₹1 Cr'],[5e7,'₹5 Cr']].map(([v,l])=>`<button type="button" data-amt="${v}">${l}</button>`).join('')}</div>
+      <div class="amtwords" id="ic-words"></div>
+    </div>
+    <details class="adv" open><summary>Assumptions (pre-filled from live data, tap to edit)</summary>
+      <div class="cgrid">${CALC_FIELDS.map(([k,l,h])=>`<label class="cf"><span>${l}</span><input data-k="${k}" type="number" step="any" value="${d[k]??''}"><small>${h}${k==='re'&&d.reAssumed?' · no live quote: assumed':''}</small></label>`).join('')}
+        <label class="cf chk"><input data-k="buyRE" type="checkbox" ${d.buyRE?'checked':''} ${d.reOpen?'':'disabled'}><span>Buy more REs in the market with the money${d.reOpen?'':` (RE trading ended ${fd(d.renunciation)})`}</span></label>
+        <label class="cf chk"><input data-k="useAdd" type="checkbox" checked><span>Apply for additional shares with leftover cash</span></label>
+      </div>
+      <button type="button" class="reset" id="ic-reset">↺ Reset to live values</button>
+    </details>
+    <div id="ic-out"><div class="small" style="margin-top:10px">Enter an amount (or tap ₹1 Cr) to see your allotment, shares and profit.</div></div>
+  </div>`;
+}
+function amtWords(v){ if(!v) return ''; if(v>=1e7) return (v/1e7).toLocaleString('en-IN',{maximumFractionDigits:2})+' crore'; if(v>=1e5) return (v/1e5).toLocaleString('en-IN',{maximumFractionDigits:2})+' lakh'; return nf(v); }
+function calcRender(it){
+  const st = CALC[it.id]; if(!st) return; const i = st.i;
+  $('#ic-words').textContent = i.amt ? '= ₹'+amtWords(i.amt) : '';
+  if(!i.amt){ $('#ic-out').innerHTML = '<div class="small" style="margin-top:10px">Enter an amount (or tap ₹1 Cr) to see your allotment, shares and profit.</div>'; return; }
+  const o = calcRun(i); st.o = o;
+  if(!o.shares){ $('#ic-out').innerHTML = `<div class="pwarn" style="margin-top:10px">₹${nf(i.amt)} is not enough for one share at ${inr(o.unitRE)} per share via RE. Increase the amount.</div>`; return; }
+  const S = calcSteps(it, i, o);
+  $('#ic-out').innerHTML = `
+    <div class="kpis">
+      <div class="kp"><div class="k">Shares you get</div><div class="v">${nf(o.shares)}</div><div class="s">avg cost ${inr(o.avgCost)}</div></div>
+      <div class="kp"><div class="k">Money actually used</div><div class="v">${inr(o.newMoney,0)}</div><div class="s">${o.released>=1?'released back '+inr(o.released,0):'fully used'}${o.ownRECost?' · + '+inr(o.ownRECost,0)+' REs':''}</div></div>
+      <div class="kp ${o.profit>=0?'good':'bad'}"><div class="k">Expected ${o.profit>=0?'profit':'loss'}</div><div class="v">${inr(o.profit,0)}</div><div class="s">${pct(o.ret,1)} in ~${i.days} days</div></div>
+      <div class="kp"><div class="k">Break-even price</div><div class="v">${inr(o.breakeven)}</div><div class="s">${pct((o.breakeven/i.exit-1)*100,1)} from exit price</div></div>
+    </div>
+    <h4 class="h4">Allotment breakdown</h4>
+    <div class="tw"><table class="ft"><thead><tr><th>Route</th><th>Shares</th><th>Cost / share</th><th>Amount</th></tr></thead><tbody>
+      ${o.entApply?`<tr><td>Your REs (${o.ownRE?nf(o.ownRE)+' owned':''}${o.ownRE&&o.fromHeld?' + ':''}${o.fromHeld?nf(o.fromHeld)+' from holding':''})</td><td>${nf(o.entApply)}</td><td>${inr(i.price)}</td><td>${inr(o.entCost,0)}</td></tr>`:''}
+      ${o.nRE?`<tr><td>REs bought in market + applied</td><td>${nf(o.nRE)}</td><td>${inr(o.unitRE)}</td><td>${inr(o.reCost+o.rePay,0)}</td></tr>`:''}
+      ${o.addApplied?`<tr><td>Additional shares (${nf(o.addApplied)} applied × ${i.addPct}%)</td><td>${nf(o.addAllot)}</td><td>${inr(i.price)}</td><td>${inr(o.addCost,0)}</td></tr>`:''}
+      <tr class="hl"><td><b>Total</b></td><td><b>${nf(o.shares)}</b></td><td><b>${inr(o.avgCost)}</b></td><td><b>${inr(o.invested,0)}</b></td></tr>
+      ${o.payLater>=1?`<tr><td colspan="3">Payable now / later via calls (partly-paid)</td><td>${inr(o.payNow,0)} / ${inr(o.payLater,0)}</td></tr>`:''}
+    </tbody></table></div>
+    <h4 class="h4">Step by step: how the money works</h4>
+    <ol class="steps2">${S.map(([t,txt,amt])=>`<li><div class="st">${t}${amt!=null?`<span class="${amt<0?'neg':''}">${inr(amt,0)}</span>`:''}</div><div class="sx">${txt}</div></li>`).join('')}</ol>
+    <h4 class="h4">What if the price moves before you sell?</h4>
+    <div class="tw"><table class="ft"><thead><tr><th>Selling price</th><th>Price</th><th>Value after charges</th><th>Profit / loss</th><th>Return</th></tr></thead><tbody>
+      ${o.scen.map(x=>`<tr class="${x.p===0?'hl':''}"><td>${x.p===0?'Expected':(x.p>0?'+':'')+x.p+'%'}</td><td>${inr(x.px)}</td><td>${inr(x.value,0)}</td><td class="${x.profit>=0?'pos':'neg'}">${inr(x.profit,0)}</td><td class="${x.ret>=0?'pos':'neg'}">${pct(x.ret,1)}</td></tr>`).join('')}
+      <tr><td>Falls to issue price</td><td>${inr(o.scenIssue.px)}</td><td>${inr(o.scenIssue.value,0)}</td><td class="${o.scenIssue.profit>=0?'pos':'neg'}">${inr(o.scenIssue.profit,0)}</td><td></td></tr>
+    </tbody></table></div>
+    <div class="pdfrow"><button type="button" class="pdfbtn" id="ic-pdf">⬇ Download PDF report</button><span class="small" style="margin:0">Your inputs and results with a step-by-step explanation, risks and key dates.</span></div>
+    <div class="small">Estimates for education, based on the assumptions above. The additional-share allotment depends on how many shares others leave unsubscribed, and the selling price can differ. Not investment advice.</div>`;
+  $('#ic-pdf').onclick = ()=>calcPdf(it);
+}
+function calcBind(it){
+  const box = $('#calcSect'); if(!box || !CALC[it.id]) return;
+  const st = CALC[it.id];
+  const amt = $('#ic-amt');
+  const setAmt = v => { st.i.amt = v; amt.value = v ? Math.round(v).toLocaleString('en-IN') : ''; calcRender(it); };
+  amt.addEventListener('input', ()=>{ const raw = amt.value.replace(/[^\d.]/g,''); st.i.amt = +raw||0; calcRender(it); });
+  amt.addEventListener('blur', ()=>{ if(st.i.amt) amt.value = Math.round(st.i.amt).toLocaleString('en-IN'); });
+  box.querySelectorAll('[data-amt]').forEach(b=>b.onclick = ()=>setAmt(+b.dataset.amt));
+  box.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('input', ()=>{ const k=inp.dataset.k; st.i[k] = inp.type==='checkbox' ? inp.checked : (+inp.value||0); if(k==='re') st.i.reAssumed=false; if(k==='subs'&&!inp.dataset.touchedAdd){ const s=+inp.value||0; st.i.addPct = s>=1?0:Math.round((1-s)*50); const a=box.querySelector('[data-k="addPct"]'); if(a) a.value=st.i.addPct; } if(k==='addPct') box.querySelector('[data-k="subs"]').dataset.touchedAdd=1; calcRender(it); }));
+  $('#ic-reset').onclick = ()=>{ const a = st.i.amt; st.i = {...st.d, amt:a}; box.querySelectorAll('[data-k]').forEach(inp=>{ const k=inp.dataset.k; if(inp.type==='checkbox') inp.checked=!!st.i[k]; else inp.value = st.i[k]??''; }); calcRender(it); };
+}
+
+/* ---------- PDF report (jsPDF + autoTable, generated in the browser) ---------- */
+let pdfLibs = null;
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('Could not load '+src)); document.head.appendChild(s); }); }
+function ensurePdfLibs(){
+  if(!pdfLibs) pdfLibs = loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+    .then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'));
+  return pdfLibs;
+}
+function imgData(url){ return fetch(url).then(r=>r.blob()).then(b=>new Promise(res=>{ const f=new FileReader(); f.onload=()=>res(f.result); f.readAsDataURL(b); })).catch(()=>null); }
+const rs = (v,dp=2)=> v==null||isNaN(v) ? '-' : (v<0?'-':'')+'Rs. '+Math.abs(v).toLocaleString('en-IN',{maximumFractionDigits:dp,minimumFractionDigits:dp&&Math.abs(v)<1000?2:0});
+const plain = s => String(s??'').replace(/<[^>]+>/g,'').replace(/₹\s?/g,'Rs. ').replace(/[×]/g,'x').replace(/[≈]/g,'~').replace(/[−–]/g,'-').replace(/[σ]/g,' sigma').replace(/[→]/g,'->').replace(/&nbsp;/g,' ').replace(/[^\x20-\x7E]/g,'');
+async function calcPdf(it){
+  const btn = $('#ic-pdf'); const old = btn.textContent; btn.textContent = 'Preparing PDF…'; btn.disabled = true;
+  try{
+    await ensurePdfLibs();
+    const st = CALC[it.id], i = st.i, o = st.o || calcRun(i), r = rate(it), m = r.m, d = it.detail||{}, c = it.credit||{}, ca = creditAssess(it);
+    const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm', format:'a4'});
+    const W = 210, M = 14, INK=[31,36,48], GREEN=[21,122,73], TEAL=[53,196,215], MUTED=[107,114,128];
+    const logo = await imgData('logo.png');
+    // header band
+    doc.setFillColor(...INK); doc.rect(0,0,W,30,'F');
+    if(logo) doc.addImage(logo,'PNG',M,5,20,20);
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('Rights Issue Investment Report', M+25, 13);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(203,213,209); doc.text('FinDeependence  |  Freedom with Finance  |  Created by CA Deep Dalal', M+25, 19);
+    doc.text('Prepared '+new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+'  |  Data as of '+new Date(DATA.generatedAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}), M+25, 24);
+    let y = 38;
+    doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text(plain(it.name), M, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+    doc.text(plain([d.nse&&'NSE: '+d.nse, d.bse&&'BSE: '+d.bse, d.isin&&'ISIN: '+d.isin, 'Status: '+it.status, 'Rating: '+r.score+'/100 '+(r.label||'')].filter(Boolean).join('   |   ')), M, y+5);
+    y += 10;
+    // KPI boxes
+    const k = [['Amount entered', rs(i.amt,0)], ['Shares you get', nf(o.shares)], [o.profit>=0?'Expected profit':'Expected loss', rs(o.profit,0)], ['Return', plain(pct(o.ret,1))+' in ~'+i.days+'d']];
+    const bw = (W-2*M-9)/4;
+    k.forEach(([a,b],j)=>{ const x = M + j*(bw+3); doc.setFillColor(j===2?(o.profit>=0?236:254):244, j===2?(o.profit>=0?253:242):248, j===2?(o.profit>=0?243:242):246); doc.roundedRect(x,y,bw,18,2,2,'F');
+      doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.text(a.toUpperCase(), x+3, y+6); doc.setFontSize(12.5); doc.setFont('helvetica','bold'); doc.setTextColor(...(j===2?(o.profit>=0?GREEN:[185,28,28]):INK)); doc.text(b, x+3, y+14); doc.setFont('helvetica','normal'); });
+    y += 24;
+    const H = (t)=>{ if(y>265){ doc.addPage(); y=18; } doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...INK); doc.text(t, M, y); doc.setDrawColor(...TEAL); doc.setLineWidth(0.6); doc.line(M, y+1.5, M+22, y+1.5); y += 4; };
+    const T = (head, body, opts={})=>{ doc.autoTable({startY:y, head:[head], body, margin:{left:M,right:M}, theme:'grid',
+      styles:{font:'helvetica', fontSize:8.6, cellPadding:2.2, textColor:INK, lineColor:[229,234,232], lineWidth:0.2, overflow:'linebreak'},
+      headStyles:{fillColor:INK, textColor:255, fontStyle:'bold', fontSize:8.4}, alternateRowStyles:{fillColor:[247,250,249]}, rowPageBreak:'avoid', ...opts}); y = doc.lastAutoTable.finalY + 7; };
+    H('1. Summary in plain words');
+    const verdictTxt = plain(`${r.label}: ${r.holder?r.holder.act:''}. Investing ${rs(i.amt,0)} gets you about ${nf(o.shares)} shares at an average cost of ${rs(o.avgCost)} each. If the share trades at ${rs(i.exit)} when you sell, you would make about ${rs(o.profit,0)} (${pct(o.ret,1)}). You start losing money only if the price falls below ${rs(o.breakeven)}.`);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.2); doc.setTextColor(...INK); const lines = doc.splitTextToSize(verdictTxt, W-2*M); doc.text(lines, M, y+2); y += lines.length*4.4 + 6;
+    H('2. Your inputs and assumptions');
+    T(['Input','Value','Basis'], [
+      ['Amount you can invest', rs(i.amt,0), 'entered by you'],
+      ['REs you already own', nf(i.ownRE), +i.ownRECost?'bought at '+rs(+i.ownRECost)+' each':'entered by you'],
+      ['Shares held on record date', nf(i.held), +i.held?'entered by you':'none'],
+      ['Buy more REs in the market', i.buyRE?'Yes':'No', i.reOpen?'RE trading open till '+(i.renunciation||'-'):'RE trading ended '+(i.renunciation||'')],
+      ['Current market price (CMP)', rs(i.cmp), plain(it.priceCheck?it.priceCheck.used.src+(it.priceCheck.used.asOf?' '+it.priceCheck.used.asOf.slice(0,10):''):'market data')],
+      ['Issue price', rs(i.price), 'Letter of Offer'],
+      ['Rights ratio (new : held)', `${i.rr} : ${i.rh}`, 'Letter of Offer'],
+      ['RE market price', rs(i.re), i.reAssumed?'no live quote: assumed 85% of fair value':'market price'],
+      ['Expected selling price', rs(i.exit), 'default = CMP (shares trade ex-rights)'],
+      ['Expected subscription', i.subs+'x', 'latest exchange data'],
+      ['Additional shares allotted', i.addPct+'%', 'depends on unsubscribed portion'],
+      ['Trading charges (per side)', i.fee+'%', 'brokerage + STT + exchange fees'],
+      ['Payable on application', i.payNow+'%', d.terms?plain('terms: '+d.terms):''],
+      ['Days until you can sell', String(i.days), plain('credit/listing ~ '+(i.listing||'-'))],
+    ], {columnStyles:{1:{halign:'right', fontStyle:'bold'}}});
+    H('3. Allotment breakdown');
+    const ab = [];
+    if(o.entApply) ab.push([o.ownRE?`Your REs (${nf(o.ownRE)} owned${o.fromHeld?' + '+nf(o.fromHeld)+' from holding':''})`:'Your entitlement (REs you received)', nf(o.entApply), rs(i.price), rs(o.entCost,0)]);
+    if(o.ownRECost) ab.push(['Already paid for your REs','', rs(+i.ownRECost), rs(o.ownRECost,0)]);
+    if(o.nRE) ab.push(['REs bought in market + applied', nf(o.nRE), rs(o.unitRE), rs(o.reCost+o.rePay,0)]);
+    if(o.addApplied) ab.push([`Additional (${nf(o.addApplied)} applied x ${i.addPct}%)`, nf(o.addAllot), rs(i.price), rs(o.addCost,0)]);
+    ab.push(['TOTAL', nf(o.shares), rs(o.avgCost), rs(o.invested,0)]);
+    if(o.blocked>0) ab.push(['Blocked in bank on application (ASBA)','','', rs(o.blocked,0)]);
+    if(o.refund>=1) ab.push(['Released after allotment (additional not allotted)','','', rs(o.refund,0)]);
+    if(o.unused>=1) ab.push(['Not used','','', rs(o.unused,0)]);
+    if(o.payLater>=1) ab.push(['Payable now / later (calls)','','', rs(o.payNow,0)+' / '+rs(o.payLater,0)]);
+    T(['Route','Shares','Cost / share','Amount'], ab, {columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right',fontStyle:'bold'}},
+      didParseCell:(dd)=>{ if(dd.section==='body' && dd.row.raw[0]==='TOTAL'){ dd.cell.styles.fillColor=[228,247,250]; dd.cell.styles.fontStyle='bold'; } }});
+    H('4. Step by step: how your money works');
+    T(['#','Step','What happens','Amount'], calcSteps(it,i,o).map((s,n)=>[String(n+1), plain(s[0]), plain(s[1]), s[2]!=null?rs(s[2],0):'']),
+      {columnStyles:{0:{cellWidth:7,halign:'center'},1:{cellWidth:36,fontStyle:'bold'},3:{cellWidth:28,halign:'right',fontStyle:'bold'}}});
+    H('5. Profit at different selling prices');
+    T(['Scenario','Selling price','Value after charges','Profit / loss','Return'],
+      o.scen.map(x=>[x.p===0?'Expected':(x.p>0?'+':'')+x.p+'%', rs(x.px), rs(x.value,0), rs(x.profit,0), plain(pct(x.ret,1))]).concat([['Falls to issue price', rs(o.scenIssue.px), rs(o.scenIssue.value,0), rs(o.scenIssue.profit,0), '']]),
+      {columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right',fontStyle:'bold'},4:{halign:'right'}},
+       didParseCell:(dd)=>{ if(dd.section==='body' && (dd.column.index===3||dd.column.index===4)){ const v=String(dd.cell.raw||''); if(v.startsWith('-')) dd.cell.styles.textColor=[185,28,28]; else if(v) dd.cell.styles.textColor=GREEN; } }});
+    H('6. Valuation and rating');
+    T(['Measure','Value','What it means'], [
+      ['Discount to CMP', m.disc!=null?m.disc.toFixed(1)+'%':'-', 'how much cheaper the issue price is than the market'],
+      ['RE fair value', rs(m.reFair), m.exRights?'CMP - issue price':'TERP - issue price'],
+      ['RE market price', rs(m.reMkt), m.reMkt!=null&&m.reFair?((m.reMkt/m.reFair-1)*100).toFixed(0)+'% vs fair value':'no quote'],
+      ['Theoretical ex-rights price', rs(m.terp), 'share price after the new shares are added'],
+      ['Safety cushion', r.cushionSigma!=null?r.cushionSigma.toFixed(2)+' sigma':'-', 'discount vs normal price swings until listing'],
+      ['Chance of trading below issue price', plain(probTxt(r.probLoss)), 'statistical estimate at listing'],
+      ['Score / rating', r.score+'/100  '+r.label, plain('Holder: '+(r.holder?r.holder.act:'')+'  |  Buyer: '+(r.buyer?r.buyer.act:''))],
+    ], {columnStyles:{1:{halign:'right',fontStyle:'bold'}}});
+    const sh = shpOf(it);
+    H('7. Company risk check');
+    T(['Check','Result'], [
+      ['Credit rating', plain(ca.badge)],
+      ['Default / insolvency record', ca.defaultFlag?'YES - see app for evidence':'None found in rating documents'],
+      ['Net worth', c.fin&&c.fin.netWorth!=null?rs(c.fin.netWorth,0)+' Cr':'-'],
+      ['Debt / equity | Interest cover', `${c.fin&&c.fin.debtEquity!=null?c.fin.debtEquity+'x':'-'} | ${c.fin&&c.fin.icr!=null?c.fin.icr+'x':'-'}`],
+      ['Market cap | Shares outstanding', `${it.mcapCr!=null?rs(it.mcapCr,0)+' Cr':'-'} | ${plain(sharesTxt(it.sharesCr))}`],
+      ['Promoter holding | Shareholders', `${sh&&sh.last('Promoters')!=null?sh.last('Promoters').toFixed(2)+'%':'-'} | ${sh&&sh.last('Shareholders')!=null?nf(sh.last('Shareholders')):'-'}${sh?' ('+sh.asOf+')':''}`],
+    ], {columnStyles:{0:{cellWidth:62,fontStyle:'bold'}}});
+    H('8. Key dates');
+    const dd2 = d.dates||{};
+    T(['Event','Date'], [['Record date',it.record],['Issue opens',it.open],['Last day to sell/renounce REs',it.renunciation],['Issue closes',it.close],['Allotment (approx.)',dd2.allotment],['Credit / listing (approx.)',dd2.listing||i.listing]].map(([a,b])=>[a,b?fd(b):'-']));
+    H('9. Words used in this report');
+    T(['Term','Meaning'], [
+      ['Rights issue','A listed company selling new shares to existing shareholders at a discount, in a fixed ratio.'],
+      ['RE (Rights Entitlement)','A temporary security credited to holders: 1 RE = the right to buy 1 new share at the issue price. It can be traded until the renunciation date; unused REs lapse worthless.'],
+      ['Record date','Holders on this date receive REs.'],
+      ['Additional shares','Shares you ask for beyond your REs; allotted only from the unsubscribed part, the rest of the money is refunded.'],
+      ['Break-even price','Selling below this price means a loss after all costs.'],
+      ['TERP','Theoretical ex-rights price: expected share price once the cheaper new shares are added.'],
+    ], {columnStyles:{0:{cellWidth:40,fontStyle:'bold'}}});
+    if(y>250){ doc.addPage(); y=18; }
+    doc.setFontSize(7.6); doc.setTextColor(...MUTED);
+    doc.text(doc.splitTextToSize('Disclaimer: This report is for education only and is not investment advice or a recommendation. Figures are estimates based on the inputs shown and public data (Chittorgarh, exchange prices via Yahoo Finance, Screener.in, rating agency rationales), which may be delayed or incomplete. Allotment of additional shares depends on the final subscription; market prices can fall below the issue price. Read the Letter of Offer and consult a SEBI-registered adviser before investing.', W-2*M), M, y);
+    const pages = doc.getNumberOfPages();
+    for(let p=1;p<=pages;p++){ doc.setPage(p); doc.setDrawColor(229,234,232); doc.line(M,287,W-M,287); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+      doc.text('FinDeependence Rights Issue Tracker  |  '+plain(it.name), M, 291.5); doc.text('Page '+p+' of '+pages, W-M, 291.5, {align:'right'}); }
+    doc.save(`${(d.nse||d.bse||it.slug||'rights').toString().replace(/[^A-Za-z0-9-]/g,'')}_rights_issue_report_${todayISO}.pdf`);
+  }catch(e){ alert('Could not create the PDF: '+e.message); }
+  finally{ btn.textContent = old; btn.disabled = false; }
+}
+
+function closeDetail(){ $('#dov').classList.remove('show'); document.body.style.overflow=''; }
+
+function subsChart(rows){
+  const W=600,H=120,pad=26, n=rows.length, max=Math.max(1,...rows.map(r=>r.times));
+  const bw=Math.min(46,(W-pad*2)/n-6);
+  const bars = rows.map((r,i)=>{ const x=pad+(i+.5)*(W-pad*2)/n, h=(r.times/max)*(H-40);
+    return `<rect x="${x-bw/2}" y="${H-20-h}" width="${bw}" height="${h}" rx="4" fill="${r.times>=1?'#1fa463':'#fca5a5'}"/><text x="${x}" y="${H-24-h}" text-anchor="middle" style="fill:#1f2430;font-weight:700">${r.times.toFixed(2)}×</text><text x="${x}" y="${H-6}" text-anchor="middle">${fd(r.at,false)}</text>`; }).join('');
+  const y1 = H-20-(1/max)*(H-40);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Subscription by date">${max>=1?`<line x1="${pad}" x2="${W-pad}" y1="${y1}" y2="${y1}" stroke="#d97706" stroke-dasharray="4 4"/><text x="${W-pad}" y="${y1-3}" text-anchor="end">1×</text>`:''}${bars}</svg>`;
+}
+
+function drawChart(it){
+  const all = it.stock.daily||[]; const cs = all.slice(-chartRange); if(cs.length<2){ $('#pchart').innerHTML=''; return; }
+  const W=720,H=260,L=48,Rr=10,T=10,PH=170,VB=50;
+  const prices = cs.flatMap(c=>[c[2],c[3]]).concat(it.price?[it.price]:[]);
+  const lo=Math.min(...prices), hi=Math.max(...prices), rng=(hi-lo)||1;
+  const vmax=Math.max(...cs.map(c=>c[5]))||1;
+  const X=i=>L+i*(W-L-Rr)/(cs.length-1), Y=p=>T+(hi-p)/rng*PH;
+  const line = cs.map((c,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(c[4]).toFixed(1)}`).join('');
+  const area = line+`L${X(cs.length-1)},${T+PH}L${X(0)},${T+PH}Z`;
+  const bw=Math.max(1,(W-L-Rr)/cs.length-1);
+  const vols = cs.map((c,i)=>{ const h=c[5]/vmax*VB; const up=i?c[4]>=cs[i-1][4]:true; return `<rect x="${X(i)-bw/2}" y="${H-h-14}" width="${bw}" height="${h}" fill="${up?'#86efac':'#fca5a5'}"/>`; }).join('');
+  const ticks=[hi,lo+rng/2,lo].map(p=>`<text x="${L-6}" y="${Y(p)+3}" text-anchor="end">${p>=1000?Math.round(p):p.toFixed(p<10?2:1)}</text><line x1="${L}" x2="${W-Rr}" y1="${Y(p)}" y2="${Y(p)}" stroke="#e5eae8"/>`).join('');
+  const ip = it.price && it.price>=lo && it.price<=hi ? `<line x1="${L}" x2="${W-Rr}" y1="${Y(it.price)}" y2="${Y(it.price)}" stroke="#6d28d9" stroke-dasharray="5 4"/><text x="${W-Rr}" y="${Y(it.price)-4}" text-anchor="end" style="fill:#6d28d9;font-weight:700">Issue ${inr(it.price)}</text>`:'';
+  const xl=[0,Math.floor(cs.length/2),cs.length-1].map(i=>`<text x="${X(i)}" y="${H-2}" text-anchor="${i===0?'start':i===cs.length-1?'end':'middle'}">${fd(cs[i][0])}</text>`).join('');
+  $('#pchart').innerHTML = `<svg class="chart" id="psvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Price and volume chart">
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#35c4d7" stop-opacity=".28"/><stop offset="1" stop-color="#35c4d7" stop-opacity="0"/></linearGradient></defs>
+    ${ticks}<path d="${area}" fill="url(#ga)"/><path d="${line}" fill="none" stroke="#1fa463" stroke-width="2"/>${ip}${vols}${xl}
+    <line id="cx" y1="${T}" y2="${H-14}" stroke="#1f2430" stroke-opacity=".35" style="display:none"/></svg>`;
+  const svg=$('#psvg');
+  const move = e=>{ const r=svg.getBoundingClientRect(); const px=((e.touches?e.touches[0].clientX:e.clientX)-r.left)/r.width*W;
+    const i=Math.max(0,Math.min(cs.length-1,Math.round((px-L)/((W-L-Rr)/(cs.length-1))))); const c=cs[i];
+    const cx=$('#cx'); cx.style.display=''; cx.setAttribute('x1',X(i)); cx.setAttribute('x2',X(i));
+    $('#ctip').innerHTML=`<b>${fd(c[0])}</b> · O ${inr(c[1])} · H ${inr(c[2])} · L ${inr(c[3])} · C <b>${inr(c[4])}</b> · Vol ${nf(c[5])}`; };
+  svg.addEventListener('mousemove',move); svg.addEventListener('touchmove',move,{passive:true});
+}
+
+/* ================= events ================= */
+$('#tabs').addEventListener('click', e=>{ const b=e.target.closest('.tab'); if(!b) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===b)); view.tab=b.dataset.tab; render(); });
+$('#search').addEventListener('input', e=>{ view.q=e.target.value.trim(); render(); });
+$('#refreshBtn').addEventListener('click', ()=>load(true));
+document.addEventListener('click', e=>{ const o=e.target.closest('[data-open]'); if(o){ openDetail(o.dataset.open); if(o.dataset.goto){ const el=document.getElementById(o.dataset.goto); if(el){ const dv=$('#dov'); dv.scrollTo(0, dv.scrollTop + el.getBoundingClientRect().top - 70); const a=$('#ic-amt'); if(a) setTimeout(()=>a.focus({preventScroll:true}),150);} } } });
+$('#dov').addEventListener('click', e=>{ if(e.target.id==='dov') closeDetail(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDetail(); });
+setInterval(()=>{ if(!document.hidden) load(); }, AUTO_MS);
+setInterval(stamp, 30000);
+load();
+</script>
+</body>
+</html>
